@@ -655,19 +655,21 @@
                                 social: 3.00,
                                 bot: 0.50
                             },
+                            // Add AHT minutes support; if missing in stored data, UI will fall back to defaultAHT
                             categoryCosts: parsed.categoryCosts || {
-                                'Pre-Sales': { costType: 'perContact', value: 5.00 },
-                                'Order Support': { costType: 'perContact', value: 6.00 },
-                                'Technical Support': { costType: 'hourly', value: 35.00 },
-                                'Customer Service': { costType: 'perContact', value: 4.50 }
+                                'Pre-Sales': { costType: 'perContact', value: 5.00, ahtMinutes: 10 },
+                                'Order Support': { costType: 'perContact', value: 6.00, ahtMinutes: 10 },
+                                'Technical Support': { costType: 'hourly', value: 35.00, ahtMinutes: 10 },
+                                'Customer Service': { costType: 'perContact', value: 4.50, ahtMinutes: 10 }
                             },
                             specialGroups: parsed.specialGroups || {
-                                'Tier 1 Agents': { costType: 'hourly', value: 25.00 },
-                                'Tier 2 Agents': { costType: 'hourly', value: 35.00 },
-                                'Specialists': { costType: 'hourly', value: 45.00 },
-                                'Offshore': { costType: 'perContact', value: 2.00 }
+                                'Tier 1 Agents': { costType: 'hourly', value: 25.00, ahtMinutes: 10 },
+                                'Tier 2 Agents': { costType: 'hourly', value: 35.00, ahtMinutes: 10 },
+                                'Specialists': { costType: 'hourly', value: 45.00, ahtMinutes: 10 },
+                                'Offshore': { costType: 'perContact', value: 2.00, ahtMinutes: 10 }
                             },
                             useCases: parsed.useCases || [],
+                            defaultAHT: parsed.defaultAHT || 10,
                             dateRange: parsed.dateRange || {
                                 start: new Date().toISOString().slice(0, 7),
                                 end: new Date(new Date().setMonth(new Date().getMonth() + 11)).toISOString().slice(0, 7)
@@ -692,16 +694,16 @@
                         bot: 0.50
                     },
                     categoryCosts: {
-                        'Pre-Sales': { costType: 'perContact', value: 5.00 },
-                        'Order Support': { costType: 'perContact', value: 6.00 },
-                        'Technical Support': { costType: 'hourly', value: 35.00 },
-                        'Customer Service': { costType: 'perContact', value: 4.50 }
+                        'Pre-Sales': { costType: 'perContact', value: 5.00, ahtMinutes: 10 },
+                        'Order Support': { costType: 'perContact', value: 6.00, ahtMinutes: 10 },
+                        'Technical Support': { costType: 'hourly', value: 35.00, ahtMinutes: 10 },
+                        'Customer Service': { costType: 'perContact', value: 4.50, ahtMinutes: 10 }
                     },
                     specialGroups: {
-                        'Tier 1 Agents': { costType: 'hourly', value: 25.00 },
-                        'Tier 2 Agents': { costType: 'hourly', value: 35.00 },
-                        'Specialists': { costType: 'hourly', value: 45.00 },
-                        'Offshore': { costType: 'perContact', value: 2.00 }
+                        'Tier 1 Agents': { costType: 'hourly', value: 25.00, ahtMinutes: 10 },
+                        'Tier 2 Agents': { costType: 'hourly', value: 35.00, ahtMinutes: 10 },
+                        'Specialists': { costType: 'hourly', value: 45.00, ahtMinutes: 10 },
+                        'Offshore': { costType: 'perContact', value: 2.00, ahtMinutes: 10 }
                     },
                     useCases: [
                         {
@@ -758,7 +760,8 @@
                     dateRange: {
                         start: defaultStart,
                         end: defaultEnd
-                    }
+                    },
+                    defaultAHT: 10
                 };
             };
 
@@ -782,6 +785,7 @@
             const [selectedMetricGuide, setSelectedMetricGuide] = useState(null);
             const [lastSaved, setLastSaved] = useState(new Date());
             const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+            const [defaultAHT, setDefaultAHT] = useState(initialData.defaultAHT || 10);
             
             const fileInputRef = useRef(null);
             const chartRefs = {
@@ -804,7 +808,8 @@
             const [newSpecialGroup, setNewSpecialGroup] = useState({
                 name: '',
                 costType: 'hourly',
-                value: 30.00
+                value: 30.00,
+                ahtMinutes: defaultAHT
             });
 
             // Update months when date range changes
@@ -822,6 +827,7 @@
                             specialGroups,
                             useCases,
                             dateRange,
+                            defaultAHT,
                             savedAt: new Date().toISOString()
                         };
                         localStorage.setItem('aiValueCalculatorData', JSON.stringify(dataToSave));
@@ -860,6 +866,19 @@
                 return channelCosts[channel] || 0;
             };
 
+            // Get applicable AHT minutes for a use case (Group > Category > Default)
+            const getApplicableAHT = (useCase) => {
+                if (useCase.specialGroup && specialGroups[useCase.specialGroup]) {
+                    const g = specialGroups[useCase.specialGroup];
+                    if (g && typeof g.ahtMinutes === 'number' && g.ahtMinutes > 0) return g.ahtMinutes;
+                }
+                if (categoryCosts[useCase.category]) {
+                    const c = categoryCosts[useCase.category];
+                    if (c && typeof c.ahtMinutes === 'number' && c.ahtMinutes > 0) return c.ahtMinutes;
+                }
+                return defaultAHT > 0 ? defaultAHT : 10;
+            };
+
             // Calculate savings with proper formulas
             const calculateSavings = (useCase, monthId) => {
                 const monthData = useCase.data[monthId] || {};
@@ -868,11 +887,12 @@
                 const baseline = parseFloat(useCase.baselineValue) || 0;
                 
                 // Calculate net improvement (improvement - baseline)
-                const netImprovement = Math.max(0, improvement - baseline);
+                let netImprovement = Math.max(0, improvement - baseline);
                 
                 // Get the effective cost
                 let effectiveCost = getEffectiveCost(useCase, useCase.channel);
                 let isHourly = false;
+                const aht = Math.max(0.01, parseFloat(getApplicableAHT(useCase)) || 10); // minutes per contact
                 
                 // Check if we're using hourly rate
                 if (useCase.specialGroup && specialGroups[useCase.specialGroup]) {
@@ -883,26 +903,29 @@
                 
                 // Different calculation based on metric type
                 if (useCase.metric.includes('AHT Reduction')) {
-                    // For AHT, always use hourly rate
-                    if (!isHourly) {
-                        // Convert per-contact cost to approximate hourly (assume 10 min avg call)
-                        effectiveCost = effectiveCost * 6; // 6 calls per hour
-                    }
-                    return volume * (netImprovement / 60) * effectiveCost;
+                    // For AHT Reduction, compute cost per minute
+                    const costPerMinute = isHourly
+                        ? (effectiveCost / 60)
+                        : (effectiveCost / aht); // per-contact cost spread across AHT minutes
+                    // Cap minutes saved to not exceed AHT
+                    const cappedMinutes = Math.min(netImprovement, aht);
+                    return volume * cappedMinutes * costPerMinute;
                 } else if (useCase.metric.includes('Deflection') || useCase.metric.includes('Automation')) {
                     // For deflection/automation, use per-contact cost
-                    if (isHourly) {
-                        // Convert hourly to per-contact (assume 10 min avg)
-                        effectiveCost = effectiveCost / 6;
-                    }
-                    return volume * (netImprovement / 100) * effectiveCost;
+                    const perContactEffective = isHourly
+                        ? (effectiveCost * (aht / 60)) // hourly -> per contact using AHT
+                        : effectiveCost;
+                    // Clamp percent between 0-100
+                    const pct = Math.max(0, Math.min(100, netImprovement));
+                    return volume * (pct / 100) * perContactEffective;
                 } else if (useCase.metric.includes('Resolution') || useCase.metric.includes('Transfer')) {
                     // For resolution/transfer, use per-contact cost
-                    if (isHourly) {
-                        // Convert hourly to per-contact
-                        effectiveCost = effectiveCost / 6;
-                    }
-                    return volume * (netImprovement / 100) * effectiveCost;
+                    const perContactEffective = isHourly
+                        ? (effectiveCost * (aht / 60))
+                        : effectiveCost;
+                    // Clamp percent between 0-100
+                    const pct = Math.max(0, Math.min(100, netImprovement));
+                    return volume * (pct / 100) * perContactEffective;
                 }
                 return 0;
             };
@@ -1027,7 +1050,7 @@
 
             // Initialize charts
             useEffect(() => {
-                if (activeTab === 'analytics' && window.Chart) {
+                if (activeTab === 'analytics' && analyticsView === 'overall' && window.Chart) {
                     // Destroy existing charts
                     Object.values(chartInstances.current).forEach(chart => {
                         if (chart) chart.destroy();
@@ -1166,7 +1189,7 @@
                         if (chart) chart.destroy();
                     });
                 };
-            }, [activeTab, useCases, months, channelCosts, categoryCosts, specialGroups, selectedCategory, selectedChannel, analyticsDateRange]);
+            }, [activeTab, analyticsView, useCases, months, channelCosts, categoryCosts, specialGroups, selectedCategory, selectedChannel, analyticsDateRange]);
 
             // CRUD Operations
             const addUseCase = () => {
@@ -1216,13 +1239,15 @@
                         ...specialGroups,
                         [newSpecialGroup.name]: {
                             costType: newSpecialGroup.costType,
-                            value: newSpecialGroup.value
+                            value: newSpecialGroup.value,
+                            ahtMinutes: typeof newSpecialGroup.ahtMinutes === 'number' ? newSpecialGroup.ahtMinutes : defaultAHT
                         }
                     });
                     setNewSpecialGroup({
                         name: '',
                         costType: 'hourly',
-                        value: 30.00
+                        value: 30.00,
+                        ahtMinutes: defaultAHT
                     });
                 }
             };
@@ -1247,7 +1272,7 @@
                 
                 // SECTION 1: DETAILED USE CASE DATA
                 csv += '=== SECTION 1: USE CASE SAVINGS CALCULATIONS ===\n';
-                csv += 'Category,Use Case,Channel,Metric,Special Group,Baseline,Effective Cost,Cost Type';
+                csv += 'Category,Use Case,Channel,Metric,Special Group,Baseline,Effective Cost,Cost Type,AHT Used (min)';
                 
                 months.forEach(month => {
                     csv += `,${month.year}-${month.month} Volume,${month.year}-${month.month} Improvement,${month.year}-${month.month} Net Improvement,${month.year}-${month.month} Savings`;
@@ -1268,7 +1293,8 @@
                         costType = categoryCosts[uc.category].costType === 'hourly' ? 'Hourly' : 'Per Contact';
                     }
                     
-                    csv += `${uc.category},${uc.name},${uc.channel},${uc.metric},${uc.specialGroup || 'None'},${uc.baselineValue},${effectiveCost},${costType}`;
+                    const ahtUsed = getApplicableAHT(uc);
+                    csv += `${uc.category},${uc.name},${uc.channel},${uc.metric},${uc.specialGroup || 'None'},${uc.baselineValue},${effectiveCost},${costType},${ahtUsed}`;
                     
                     let totalSavings = 0;
                     
@@ -1285,45 +1311,53 @@
                 
                 // SECTION 2: INPUT PARAMETERS
                 csv += '\n\n=== SECTION 2: ALL INPUT PARAMETERS ===\n';
-                csv += 'Use Case,Month,Volume Input,Improvement Input,Baseline,Net Improvement Used\n';
+                csv += 'Use Case,Month,Metric,Unit,Volume (contacts),Improvement Input,Baseline,Net Improvement Used\n';
                 
                 useCases.forEach(uc => {
+                    const unit = uc.metric.includes('AHT Reduction') ? 'minutes' : '%';
                     months.forEach(month => {
                         const monthData = uc.data[month.id] || {};
                         const improvement = monthData.improvement || 0;
                         const netImprovement = Math.max(0, improvement - uc.baselineValue);
-                        csv += `${uc.name},${month.month} ${month.year},${monthData.volume || 0},${improvement},${uc.baselineValue},${netImprovement}\n`;
+                        csv += `${uc.name},${month.month} ${month.year},${uc.metric},${unit},${monthData.volume || 0},${improvement},${uc.baselineValue},${netImprovement}\n`;
                     });
                 });
                 
                 // SECTION 3: COST SETTINGS
                 csv += '\n\n=== SECTION 3: COST CONFIGURATION ===\n';
-                csv += 'Cost Tier,Type,Name,Cost Type,Value,Priority\n';
+                csv += 'Cost Tier,Type,Name,Cost Type,Value,AHT (min),Priority\n';
                 
                 // Channel costs (Priority 3)
                 Object.entries(channelCosts).forEach(([channel, cost]) => {
-                    csv += `Channel Default,Channel,${channel},Per Contact,${cost},Priority 3 (Lowest)\n`;
+                    csv += `Channel Default,Channel,${channel},Per Contact,${cost},${defaultAHT},Priority 3 (Lowest)\n`;
                 });
                 
                 // Category costs (Priority 2)
                 Object.entries(categoryCosts).forEach(([category, data]) => {
-                    csv += `Category Override,Category,${category},${data.costType === 'hourly' ? 'Hourly' : 'Per Contact'},${data.value},Priority 2 (Medium)\n`;
+                    const aht = typeof data.ahtMinutes === 'number' ? data.ahtMinutes : defaultAHT;
+                    csv += `Category Override,Category,${category},${data.costType === 'hourly' ? 'Hourly' : 'Per Contact'},${data.value},${aht},Priority 2 (Medium)\n`;
                 });
                 
                 // Special groups (Priority 1)
                 Object.entries(specialGroups).forEach(([group, data]) => {
-                    csv += `Special Group,Special Group,${group},${data.costType === 'hourly' ? 'Hourly' : 'Per Contact'},${data.value},Priority 1 (Highest)\n`;
+                    const aht = typeof data.ahtMinutes === 'number' ? data.ahtMinutes : defaultAHT;
+                    csv += `Special Group,Special Group,${group},${data.costType === 'hourly' ? 'Hourly' : 'Per Contact'},${data.value},${aht},Priority 1 (Highest)\n`;
                 });
                 
                 // SECTION 4: CALCULATION FORMULAS
                 csv += '\n\n=== SECTION 4: CALCULATION FORMULAS USED ===\n';
                 csv += 'Metric Type,Formula,Example\n';
+                csv += 'Note,Effective Cost/Contact = (Hourly × AHT/60) if Hourly; otherwise PerContact,Example: $30 × (8/60) = $4.00 per contact when AHT = 8\n';
+                csv += 'Note,Cost/Minute = (Hourly/60) if Hourly; otherwise (PerContact/AHT),Example: $2.50 / 8 = $0.3125 per minute when AHT = 8\n';
                 csv += 'Deflection Rate (%),Volume × (Improvement% - Baseline%) × Cost per Contact,"1000 × (70% - 10%) × $2.50 = $1,500"\n';
                 csv += 'AHT Reduction (min),Volume × (Minutes - Baseline) / 60 × Hourly Rate,"500 × (3 - 0.5) / 60 × $30 = $625"\n';
                 csv += 'Automation Rate (%),Volume × (Improvement% - Baseline%) × Cost per Contact,"2000 × (60% - 20%) × $4 = $3,200"\n';
                 csv += 'Self-Service Resolution (%),Volume × (Improvement% - Baseline%) × Cost per Contact,"1500 × (50% - 15%) × $3 = $1,575"\n';
                 csv += 'Transfer Rate Reduction (%),Volume × (Reduction% - Baseline%) × Cost per Contact,"3000 × (40% - 30%) × $6 = $1,800"\n';
                 
+                // Additional AHT example using per-contact pricing
+                csv += 'AHT Reduction (min) [Per-Contact Example],Volume × (Minutes - Baseline) × (PerContact/AHT),"500 × (3 - 0.5) × ($2.50/8) = $390.63"\n';
+
                 // SECTION 5: MONTHLY SUMMARY
                 csv += '\n\n=== SECTION 5: MONTHLY SAVINGS SUMMARY ===\n';
                 csv += 'Month,Total Volume,Total Savings,Cumulative Savings\n';
@@ -1398,12 +1432,170 @@
                 csv += `Number of Months,${months.length}\n`;
                 csv += `Total Volume Processed,${Object.values(channelVolumes).reduce((a, b) => a + b, 0)}\n`;
                 csv += `Average Cost per Contact Saved,$${totalSavingsAll > 0 ? (totalSavingsAll / Object.values(channelVolumes).reduce((a, b) => a + b, 0) || 1).toFixed(2) : 0}\n`;
+
+                // SECTION 9: SAVINGS BY USE CASE (COMPACT)
+                csv += '\n\n=== SECTION 9: SAVINGS BY USE CASE ===\n';
+                csv += 'Category,Use Case,Channel,Metric,Cost Type,AHT Used (min),Total Savings,Average Monthly Savings\n';
+                useCases.forEach(uc => {
+                    // Determine cost type and AHT used
+                    let costType = 'Per Contact';
+                    if (uc.specialGroup && specialGroups[uc.specialGroup]) {
+                        costType = specialGroups[uc.specialGroup].costType === 'hourly' ? 'Hourly' : 'Per Contact';
+                    } else if (categoryCosts[uc.category]) {
+                        costType = categoryCosts[uc.category].costType === 'hourly' ? 'Hourly' : 'Per Contact';
+                    }
+                    const ahtUsed = getApplicableAHT(uc);
+                    let total = 0;
+                    months.forEach(month => { total += calculateSavings(uc, month.id); });
+                    const avg = months.length > 0 ? (total / months.length) : 0;
+                    csv += `${uc.category},${uc.name},${uc.channel},${uc.metric},${costType},${ahtUsed},${total.toFixed(2)},${avg.toFixed(2)}\n`;
+                });
+
+                // SECTION 10: MONTHLY SAVINGS BY USE CASE MATRIX
+                csv += '\n\n=== SECTION 10: MONTHLY SAVINGS BY USE CASE ===\n';
+                csv += 'Use Case,Category,Channel,Metric';
+                months.forEach(month => {
+                    csv += `,${month.year}-${month.month} Savings`;
+                });
+                csv += ',Total\n';
                 
+                useCases.forEach(uc => {
+                    let total = 0;
+                    let row = `${uc.name},${uc.category},${uc.channel},${uc.metric}`;
+                    months.forEach(month => {
+                        const s = calculateSavings(uc, month.id);
+                        total += s;
+                        row += `,${s.toFixed(2)}`;
+                    });
+                    row += `,${total.toFixed(2)}\n`;
+                    csv += row;
+                });
+                
+                // Add a totals row across all use cases per month
+                let totalsRow = 'TOTAL,,,';
+                let grandTotal = 0;
+                months.forEach(month => {
+                    let mTotal = 0;
+                    useCases.forEach(uc => { mTotal += calculateSavings(uc, month.id); });
+                    grandTotal += mTotal;
+                    totalsRow += `${mTotal.toFixed(2)},`;
+                });
+                // Replace trailing comma with comma + grand total
+                totalsRow = totalsRow.replace(/,$/, `,${grandTotal.toFixed(2)}\n`);
+                csv += totalsRow;
+
                 const blob = new Blob([csv], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = `roi_analysis_complete_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            };
+
+            // Export current analytics view to CSV
+            const exportAnalyticsCSV = () => {
+                let csv = `=== ANALYTICS EXPORT (${analyticsView.toUpperCase()}) ===\n`;
+                csv += `Export Date: ${new Date().toISOString()}\n`;
+                csv += `Analysis Period: ${analyticsDateRange.start} to ${analyticsDateRange.end}\n`;
+                csv += `Months: ${getFilteredMonths().length}\n\n`;
+
+                if (analyticsView === 'overall') {
+                    const monthly = getMonthlyTrendData();
+                    const cumulative = getCumulativeData();
+                    const byCategory = getCategoryBreakdown();
+                    const byChannel = getChannelBreakdown();
+                    csv += 'Section,Label,Value\n';
+                    monthly.forEach(d => csv += `Monthly Trend,${d.label},${d.value}\n`);
+                    cumulative.forEach(d => csv += `Cumulative,${d.label},${d.value}\n`);
+                    byCategory.forEach(d => csv += `By Category,${d.label},${d.value}\n`);
+                    byChannel.forEach(d => csv += `By Channel,${d.label},${d.value}\n`);
+                } else if (analyticsView === 'category') {
+                    csv += 'Category,Use Cases,Total Volume,Total Savings,Avg Savings/Contact,% of Total\n';
+                    const categoryStats = {};
+                    const filteredMonths = getFilteredMonths();
+                    useCases.forEach(uc => {
+                        if (!categoryStats[uc.category]) categoryStats[uc.category] = { useCases: [], volume: 0, savings: 0 };
+                        categoryStats[uc.category].useCases.push(uc.name);
+                        filteredMonths.forEach(month => {
+                            const md = uc.data[month.id] || {};
+                            categoryStats[uc.category].volume += parseFloat(md.volume) || 0;
+                            categoryStats[uc.category].savings += calculateSavings(uc, month.id);
+                        });
+                    });
+                    const totalSavingsAll = Object.values(categoryStats).reduce((s, v) => s + v.savings, 0);
+                    Object.entries(categoryStats).forEach(([cat, stats]) => {
+                        const pct = totalSavingsAll > 0 ? (stats.savings / totalSavingsAll * 100).toFixed(1) : 0;
+                        const avg = stats.volume > 0 ? (stats.savings / stats.volume).toFixed(2) : '0.00';
+                        csv += `${cat},${stats.useCases.length},${Math.round(stats.volume)},${Math.round(stats.savings)},${avg},${pct}%\n`;
+                    });
+                } else if (analyticsView === 'channel') {
+                    csv += 'Channel,Use Cases,Total Volume,Total Savings,Default Cost,Avg Improvement,% of Total\n';
+                    const channelStats = {};
+                    const filteredMonths = getFilteredMonths();
+                    useCases.forEach(uc => {
+                        if (!channelStats[uc.channel]) channelStats[uc.channel] = { useCases: [], volume: 0, savings: 0, improvements: [] };
+                        channelStats[uc.channel].useCases.push(uc.name);
+                        filteredMonths.forEach(month => {
+                            const md = uc.data[month.id] || {};
+                            channelStats[uc.channel].volume += parseFloat(md.volume) || 0;
+                            channelStats[uc.channel].savings += calculateSavings(uc, month.id);
+                            if (md.improvement != null) channelStats[uc.channel].improvements.push(parseFloat(md.improvement) || 0);
+                        });
+                    });
+                    const totalSavingsAll = Object.values(channelStats).reduce((s, v) => s + v.savings, 0);
+                    Object.entries(channelStats).forEach(([ch, stats]) => {
+                        const avgImp = stats.improvements.length ? (stats.improvements.reduce((a,b)=>a+b,0)/stats.improvements.length).toFixed(1) : '0.0';
+                        const pct = totalSavingsAll > 0 ? (stats.savings / totalSavingsAll * 100).toFixed(1) : 0;
+                        csv += `${ch},${stats.useCases.length},${Math.round(stats.volume)},${Math.round(stats.savings)},${channelCosts[ch]},${avgImp}%,${pct}%\n`;
+                    });
+                } else if (analyticsView === 'usecase') {
+                    csv += 'Use Case,Category,Channel,Metric,Special Group,Total Volume,Avg Improvement,Total Savings,% of Total\n';
+                    const filteredMonths = getFilteredMonths();
+                    const totals = useCases.map(uc => ({
+                        name: uc.name,
+                        volume: filteredMonths.reduce((s, m) => s + (parseFloat((uc.data[m.id]||{}).volume) || 0), 0),
+                        savings: filteredMonths.reduce((s, m) => s + calculateSavings(uc, m.id), 0),
+                        impList: filteredMonths.map(m => parseFloat(((uc.data[m.id]||{}).improvement)) || 0).filter(v => !isNaN(v)),
+                        uc
+                    }));
+                    const totalSavingsAll = totals.reduce((s, t) => s + t.savings, 0);
+                    totals.forEach(t => {
+                        const avgImpRaw = t.impList.length ? (t.impList.reduce((a,b)=>a+b,0)/t.impList.length) : 0;
+                        const avgImp = t.uc.metric.includes('min') ? `${avgImpRaw.toFixed(1)} min` : `${avgImpRaw.toFixed(1)}%`;
+                        const pct = totalSavingsAll > 0 ? (t.savings / totalSavingsAll * 100).toFixed(1) : 0;
+                        csv += `${t.uc.name},${t.uc.category},${t.uc.channel},${t.uc.metric},${t.uc.specialGroup || '-'},${Math.round(t.volume)},${avgImp},${Math.round(t.savings)},${pct}%\n`;
+                    });
+                } else if (analyticsView === 'specialgroup') {
+                    csv += 'Special Group,Cost Type,Rate,Use Cases,Total Volume,Total Savings,% of Total\n';
+                    const groupStats = {};
+                    const filteredMonths = getFilteredMonths();
+                    Object.entries(specialGroups).forEach(([g, d]) => {
+                        groupStats[g] = { costType: d.costType, value: d.value, useCases: [], volume: 0, savings: 0 };
+                    });
+                    groupStats['No Special Group'] = { costType: 'varies', value: '-', useCases: [], volume: 0, savings: 0 };
+                    useCases.forEach(uc => {
+                        const key = uc.specialGroup || 'No Special Group';
+                        groupStats[key].useCases.push(uc.name);
+                        filteredMonths.forEach(month => {
+                            const md = uc.data[month.id] || {};
+                            groupStats[key].volume += parseFloat(md.volume) || 0;
+                            groupStats[key].savings += calculateSavings(uc, month.id);
+                        });
+                    });
+                    const totalSavingsAll = Object.values(groupStats).reduce((s, v) => s + v.savings, 0);
+                    Object.entries(groupStats).forEach(([g, stats]) => {
+                        const pct = totalSavingsAll > 0 ? (stats.savings / totalSavingsAll * 100).toFixed(1) : 0;
+                        const rate = stats.value !== '-' ? `$${stats.value} ${stats.costType === 'hourly' ? '/hr' : '/contact'}` : '-';
+                        csv += `${g},${stats.costType},${rate},${stats.useCases.length},${Math.round(stats.volume)},${Math.round(stats.savings)},${pct}%\n`;
+                    });
+                }
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `analytics_${analyticsView}_${new Date().toISOString().split('T')[0]}.csv`;
                 a.click();
                 window.URL.revokeObjectURL(url);
             };
@@ -1415,8 +1607,9 @@
                     specialGroups,
                     useCases,
                     dateRange,
+                    defaultAHT,
                     exportDate: new Date().toISOString(),
-                    version: '2.0'
+                    version: '2.1'
                 };
                 
                 const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
@@ -1444,6 +1637,9 @@
                             if (importedData.dateRange) {
                                 setDateRange(importedData.dateRange);
                                 setMonths(generateMonthsFromRange(importedData.dateRange.start, importedData.dateRange.end));
+                            }
+                            if (typeof importedData.defaultAHT === 'number') {
+                                setDefaultAHT(importedData.defaultAHT);
                             }
                             
                             alert('Data imported successfully!');
@@ -1661,6 +1857,25 @@
                         {showSettings && (
                             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                                 <h2 className="text-xl font-semibold mb-4">Advanced Cost Settings</h2>
+                                {/* Global Default AHT */}
+                                <div className="settings-section">
+                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                                        <Icons.Clock /> Call Center Default AHT (minutes)
+                                    </h3>
+                                    <div className="settings-grid">
+                                        <div className="settings-item">
+                                            <label className="settings-label">Default AHT (min)</label>
+                                            <input
+                                                type="number"
+                                                value={defaultAHT}
+                                                onChange={(e) => setDefaultAHT(Math.max(0, parseFloat(e.target.value) || 0))}
+                                                className="settings-input w-28"
+                                                step="0.1"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-gray-500 mt-2">Used when a Category or Special Group does not specify its own AHT.</p>
+                                </div>
                                 
                                 {/* Channel Costs */}
                                 <div className="settings-section">
@@ -1725,6 +1940,19 @@
                                                     className="settings-input w-24"
                                                     step="0.01"
                                                 />
+                                                <div className="flex items-center gap-2">
+                                                    <label className="settings-label">AHT (min)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={typeof data.ahtMinutes === 'number' ? data.ahtMinutes : defaultAHT}
+                                                        onChange={(e) => setCategoryCosts({
+                                                            ...categoryCosts,
+                                                            [category]: { ...data, ahtMinutes: Math.max(0, parseFloat(e.target.value) || 0) }
+                                                        })}
+                                                        className="settings-input w-24"
+                                                        step="0.1"
+                                                    />
+                                                </div>
                                                 <span className="text-sm text-gray-500">
                                                     ${data.value} {data.costType === 'hourly' ? '/hr' : '/contact'}
                                                 </span>
@@ -1772,6 +2000,19 @@
                                                     className="settings-input w-24"
                                                     step="0.01"
                                                 />
+                                                <div className="flex items-center gap-2">
+                                                    <label className="settings-label">AHT (min)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={typeof data.ahtMinutes === 'number' ? data.ahtMinutes : defaultAHT}
+                                                        onChange={(e) => setSpecialGroups({
+                                                            ...specialGroups,
+                                                            [group]: { ...data, ahtMinutes: Math.max(0, parseFloat(e.target.value) || 0) }
+                                                        })}
+                                                        className="settings-input w-24"
+                                                        step="0.1"
+                                                    />
+                                                </div>
                                                 <span className="text-sm text-gray-500">
                                                     ${data.value} {data.costType === 'hourly' ? '/hr' : '/contact'}
                                                 </span>
@@ -1814,6 +2055,16 @@
                                                 className="settings-input w-24"
                                                 step="0.01"
                                             />
+                                            <div className="flex items-center gap-2">
+                                                <label className="settings-label">AHT (min)</label>
+                                                <input
+                                                    type="number"
+                                                    value={newSpecialGroup.ahtMinutes}
+                                                    onChange={(e) => setNewSpecialGroup({ ...newSpecialGroup, ahtMinutes: Math.max(0, parseFloat(e.target.value) || 0) })}
+                                                    className="settings-input w-24"
+                                                    step="0.1"
+                                                />
+                                            </div>
                                             <button
                                                 onClick={addSpecialGroup}
                                                 className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -2050,68 +2301,258 @@
                         {/* Analytics Tab */}
                         {activeTab === 'analytics' && (
                             <div className="space-y-6">
-                                {/* Analytics Date Range Selector */}
+                                {/* Analytics Controls */}
                                 <div className="bg-white rounded-lg shadow-lg p-4">
-                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                        <Icons.Calendar /> Analytics Date Range
-                                    </h3>
-                                    <div className="date-range-picker">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-semibold flex items-center gap-2">
+                                            <Icons.Chart /> Analytics View
+                                        </h3>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setAnalyticsView('overall')} className={`filter-btn ${analyticsView === 'overall' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>Overall</button>
+                                            <button onClick={() => setAnalyticsView('category')} className={`filter-btn ${analyticsView === 'category' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>By Category</button>
+                                            <button onClick={() => setAnalyticsView('channel')} className={`filter-btn ${analyticsView === 'channel' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>By Channel</button>
+                                            <button onClick={() => setAnalyticsView('usecase')} className={`filter-btn ${analyticsView === 'usecase' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>By Use Case</button>
+                                            <button onClick={() => setAnalyticsView('specialgroup')} className={`filter-btn ${analyticsView === 'specialgroup' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>By Special Group</button>
+                                        </div>
+                                    </div>
+
+                                    {/* Category and Channel Filters for Overall View */}
+                                    {analyticsView === 'overall' && (
+                                        <div className="flex gap-4 pt-4 border-t">
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-sm font-medium">Category:</label>
+                                                <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="px-3 py-1 border rounded text-sm">
+                                                    <option value="all">All Categories</option>
+                                                    {getCategories().map(cat => (<option key={cat} value={cat}>{cat}</option>))}
+                                                </select>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-sm font-medium">Channel:</label>
+                                                <select value={selectedChannel} onChange={(e) => setSelectedChannel(e.target.value)} className="px-3 py-1 border rounded text-sm">
+                                                    <option value="all">All Channels</option>
+                                                    {getChannels().map(ch => (<option key={ch} value={ch}>{ch}</option>))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Date Range Selector */}
+                                    <div className="date-range-picker mt-4">
                                         <div className="date-input-group">
                                             <label className="date-label">Start Month</label>
-                                            <input
-                                                type="month"
-                                                value={analyticsDateRange.start}
-                                                onChange={(e) => setAnalyticsDateRange({ ...analyticsDateRange, start: e.target.value })}
-                                                className="date-input"
-                                            />
+                                            <input type="month" value={analyticsDateRange.start} onChange={(e) => setAnalyticsDateRange({ ...analyticsDateRange, start: e.target.value })} className="date-input" />
                                         </div>
                                         <div className="date-input-group">
                                             <label className="date-label">End Month</label>
-                                            <input
-                                                type="month"
-                                                value={analyticsDateRange.end}
-                                                onChange={(e) => setAnalyticsDateRange({ ...analyticsDateRange, end: e.target.value })}
-                                                className="date-input"
-                                            />
+                                            <input type="month" value={analyticsDateRange.end} onChange={(e) => setAnalyticsDateRange({ ...analyticsDateRange, end: e.target.value })} className="date-input" />
                                         </div>
                                         <div className="flex items-end">
-                                            <div className="px-4 py-2 bg-blue-100 text-blue-700 rounded">
-                                                Analyzing {getFilteredMonths().length} months
+                                            <div className="px-4 py-2 bg-blue-100 text-blue-700 rounded">Analyzing {getFilteredMonths().length} months</div>
+                                            <div className="ml-auto">
+                                                <button onClick={exportAnalyticsCSV} className="ml-3 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Export Current View CSV</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Charts */}
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="bg-white rounded-lg shadow-lg p-6">
-                                        <h3 className="text-lg font-semibold mb-4">Monthly Savings Trend</h3>
-                                        <div className="chart-container">
-                                            <canvas ref={chartRefs.monthly}></canvas>
+                                {/* Overall View - Charts */}
+                                {analyticsView === 'overall' && (
+                                    <>
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="bg-white rounded-lg shadow-lg p-6">
+                                                <h3 className="text-lg font-semibold mb-4">Monthly Savings Trend</h3>
+                                                <div className="chart-container"><canvas ref={chartRefs.monthly}></canvas></div>
+                                            </div>
+                                            <div className="bg-white rounded-lg shadow-lg p-6">
+                                                <h3 className="text-lg font-semibold mb-4">Cumulative Savings</h3>
+                                                <div className="chart-container"><canvas ref={chartRefs.cumulative}></canvas></div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="bg-white rounded-lg shadow-lg p-6">
-                                        <h3 className="text-lg font-semibold mb-4">Cumulative Savings</h3>
-                                        <div className="chart-container">
-                                            <canvas ref={chartRefs.cumulative}></canvas>
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="bg-white rounded-lg shadow-lg p-6">
+                                                <h3 className="text-lg font-semibold mb-4">Savings by Category</h3>
+                                                <div className="chart-container"><canvas ref={chartRefs.category}></canvas></div>
+                                            </div>
+                                            <div className="bg-white rounded-lg shadow-lg p-6">
+                                                <h3 className="text-lg font-semibold mb-4">Channel Performance</h3>
+                                                <div className="chart-container"><canvas ref={chartRefs.channel}></canvas></div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 gap-6">
+                                    </>
+                                )}
+
+                                {/* Category View - Table */}
+                                {analyticsView === 'category' && (
                                     <div className="bg-white rounded-lg shadow-lg p-6">
-                                        <h3 className="text-lg font-semibold mb-4">Savings by Category</h3>
-                                        <div className="chart-container">
-                                            <canvas ref={chartRefs.category}></canvas>
-                                        </div>
+                                        <h3 className="text-lg font-semibold mb-4">Category Performance Analysis</h3>
+                                        <table className="analytics-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Category</th><th>Use Cases</th><th>Total Volume</th><th>Total Savings</th><th>Avg Savings/Contact</th><th>% of Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(() => {
+                                                    const categoryStats = {};
+                                                    const totalSavingsAll = calculateTotalSavings();
+                                                    const filteredMonths = getFilteredMonths();
+                                                    useCases.forEach(uc => {
+                                                        if (!categoryStats[uc.category]) categoryStats[uc.category] = { useCases: [], volume: 0, savings: 0 };
+                                                        categoryStats[uc.category].useCases.push(uc.name);
+                                                        filteredMonths.forEach(month => {
+                                                            const md = uc.data[month.id] || {};
+                                                            categoryStats[uc.category].volume += parseFloat(md.volume) || 0;
+                                                            categoryStats[uc.category].savings += calculateSavings(uc, month.id);
+                                                        });
+                                                    });
+                                                    return Object.entries(categoryStats).map(([category, stats]) => (
+                                                        <tr key={category}>
+                                                            <td className="font-semibold">{category}</td>
+                                                            <td>{stats.useCases.length}</td>
+                                                            <td>{Math.round(stats.volume).toLocaleString()}</td>
+                                                            <td className="font-bold text-green-600">{`$${Math.round(stats.savings).toLocaleString()}`}</td>
+                                                            <td>{stats.volume > 0 ? (stats.savings / stats.volume).toFixed(2) : '0.00'}</td>
+                                                            <td>{totalSavingsAll > 0 ? `${(stats.savings / totalSavingsAll * 100).toFixed(1)}%` : '0%'}</td>
+                                                        </tr>
+                                                    ));
+                                                })()}
+                                            </tbody>
+                                        </table>
                                     </div>
+                                )}
+
+                                {/* Channel View - Table */}
+                                {analyticsView === 'channel' && (
                                     <div className="bg-white rounded-lg shadow-lg p-6">
-                                        <h3 className="text-lg font-semibold mb-4">Channel Performance</h3>
-                                        <div className="chart-container">
-                                            <canvas ref={chartRefs.channel}></canvas>
-                                        </div>
+                                        <h3 className="text-lg font-semibold mb-4">Channel Performance Analysis</h3>
+                                        <table className="analytics-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Channel</th><th>Use Cases</th><th>Total Volume</th><th>Total Savings</th><th>Default Cost</th><th>Avg Improvement</th><th>% of Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(() => {
+                                                    const channelStats = {};
+                                                    const totalSavingsAll = calculateTotalSavings();
+                                                    const filteredMonths = getFilteredMonths();
+                                                    useCases.forEach(uc => {
+                                                        if (!channelStats[uc.channel]) channelStats[uc.channel] = { useCases: [], volume: 0, savings: 0, improvements: [] };
+                                                        channelStats[uc.channel].useCases.push(uc.name);
+                                                        filteredMonths.forEach(month => {
+                                                            const md = uc.data[month.id] || {};
+                                                            channelStats[uc.channel].volume += parseFloat(md.volume) || 0;
+                                                            channelStats[uc.channel].savings += calculateSavings(uc, month.id);
+                                                            if (md.improvement != null) channelStats[uc.channel].improvements.push(parseFloat(md.improvement) || 0);
+                                                        });
+                                                    });
+                                                    return Object.entries(channelStats).map(([channel, stats]) => {
+                                                        const avgImprovement = stats.improvements.length ? (stats.improvements.reduce((a,b)=>a+b,0)/stats.improvements.length) : 0;
+                                                        return (
+                                                            <tr key={channel}>
+                                                                <td className="font-semibold capitalize">{channel}</td>
+                                                                <td>{stats.useCases.length}</td>
+                                                                <td>{Math.round(stats.volume).toLocaleString()}</td>
+                                                                <td className="font-bold text-green-600">{`$${Math.round(stats.savings).toLocaleString()}`}</td>
+                                                                <td>{`$${channelCosts[channel]}`}</td>
+                                                                <td>{avgImprovement.toFixed(1)}%</td>
+                                                                <td>{totalSavingsAll > 0 ? `${(stats.savings / totalSavingsAll * 100).toFixed(1)}%` : '0%'}</td>
+                                                            </tr>
+                                                        );
+                                                    });
+                                                })()}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                </div>
+                                )}
+
+                                {/* Use Case View - Table */}
+                                {analyticsView === 'usecase' && (
+                                    <div className="bg-white rounded-lg shadow-lg p-6">
+                                        <h3 className="text-lg font-semibold mb-4">Individual Use Case Performance</h3>
+                                        <table className="analytics-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Use Case</th><th>Category</th><th>Channel</th><th>Metric</th><th>Special Group</th><th>Total Volume</th><th>Avg Improvement</th><th>Total Savings</th><th>% of Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(() => {
+                                                    const totalSavingsAll = calculateTotalSavings();
+                                                    const filteredMonths = getFilteredMonths();
+                                                    return useCases.map(uc => {
+                                                        let totalVolume = 0, totalSavings = 0; const improvements = [];
+                                                        filteredMonths.forEach(month => {
+                                                            const md = uc.data[month.id] || {};
+                                                            totalVolume += parseFloat(md.volume) || 0;
+                                                            totalSavings += calculateSavings(uc, month.id);
+                                                            if (md.improvement != null) improvements.push(parseFloat(md.improvement) || 0);
+                                                        });
+                                                        const avgImprovement = improvements.length ? (improvements.reduce((a,b)=>a+b,0)/improvements.length) : 0;
+                                                        return (
+                                                            <tr key={uc.id}>
+                                                                <td className="font-semibold">{uc.name}</td>
+                                                                <td>{uc.category}</td>
+                                                                <td className="capitalize">{uc.channel}</td>
+                                                                <td>{uc.metric}</td>
+                                                                <td>{uc.specialGroup || '-'}</td>
+                                                                <td>{Math.round(totalVolume).toLocaleString()}</td>
+                                                                <td>{uc.metric.includes('min') ? `${avgImprovement.toFixed(1)} min` : `${avgImprovement.toFixed(1)}%`}</td>
+                                                                <td className="font-bold text-green-600">{`$${Math.round(totalSavings).toLocaleString()}`}</td>
+                                                                <td>{totalSavingsAll > 0 ? `${(totalSavings / totalSavingsAll * 100).toFixed(1)}%` : '0%'}</td>
+                                                            </tr>
+                                                        );
+                                                    });
+                                                })()}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                {/* Special Group View - Table */}
+                                {analyticsView === 'specialgroup' && (
+                                    <div className="bg-white rounded-lg shadow-lg p-6">
+                                        <h3 className="text-lg font-semibold mb-4">Special Group Performance Analysis</h3>
+                                        <table className="analytics-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Special Group</th><th>Cost Type</th><th>Rate</th><th>Use Cases</th><th>Total Volume</th><th>Total Savings</th><th>% of Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(() => {
+                                                    const groupStats = {};
+                                                    const totalSavingsAll = calculateTotalSavings();
+                                                    const filteredMonths = getFilteredMonths();
+                                                    Object.entries(specialGroups).forEach(([groupName, groupData]) => {
+                                                        groupStats[groupName] = { ...groupData, useCases: [], volume: 0, savings: 0 };
+                                                    });
+                                                    groupStats['No Special Group'] = { costType: 'varies', value: '-', useCases: [], volume: 0, savings: 0 };
+                                                    useCases.forEach(uc => {
+                                                        const key = uc.specialGroup || 'No Special Group';
+                                                        groupStats[key].useCases.push(uc.name);
+                                                        filteredMonths.forEach(month => {
+                                                            const md = uc.data[month.id] || {};
+                                                            groupStats[key].volume += parseFloat(md.volume) || 0;
+                                                            groupStats[key].savings += calculateSavings(uc, month.id);
+                                                        });
+                                                    });
+                                                    return Object.entries(groupStats).map(([group, stats]) => (
+                                                        <tr key={group}>
+                                                            <td className="font-semibold">{group}</td>
+                                                            <td className="capitalize">{stats.costType}</td>
+                                                            <td>{stats.value !== '-' ? `$${stats.value} ${stats.costType === 'hourly' ? '/hr' : '/contact'}` : '-'}</td>
+                                                            <td>{stats.useCases.length}</td>
+                                                            <td>{Math.round(stats.volume).toLocaleString()}</td>
+                                                            <td className="font-bold text-green-600">{`$${Math.round(stats.savings).toLocaleString()}`}</td>
+                                                            <td>{totalSavingsAll > 0 ? `${(stats.savings / totalSavingsAll * 100).toFixed(1)}%` : '0%'}</td>
+                                                        </tr>
+                                                    ));
+                                                })()}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
                         )}
 
