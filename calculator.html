@@ -2476,6 +2476,10 @@
 
                             useCases.forEach(uc => {
                                 const key = uc.specialGroup || 'No Special Group';
+                                // Initialize if key doesn't exist (for data consistency)
+                                if (!(key in groupData)) {
+                                    groupData[key] = 0;
+                                }
                                 filteredMonths.forEach(month => {
                                     groupData[key] += calculateSavings(uc, month.id);
                                 });
@@ -3553,8 +3557,21 @@
                         });
                     });
                     const totalSavingsAll = Object.values(categoryStats).reduce((s, v) => s + v.savings, 0);
+                    // Check if multiple categories have savings
+                    const categoriesWithSavings = Object.values(categoryStats).filter(s => s.savings > 0).length;
+                    
                     Object.entries(categoryStats).forEach(([cat, stats]) => {
-                        const pct = totalSavingsAll > 0 ? (stats.savings / totalSavingsAll * 100).toFixed(1) : 0;
+                        let pct = '0';
+                        if (totalSavingsAll > 0) {
+                            const percentage = (stats.savings / totalSavingsAll * 100);
+                            if (percentage > 0 && percentage < 0.1) {
+                                pct = '<0.1';
+                            } else if (percentage > 99.9 && percentage < 100 && categoriesWithSavings > 1) {
+                                pct = '>99.9';
+                            } else {
+                                pct = percentage.toFixed(1);
+                            }
+                        }
                         const avg = stats.volume > 0 ? (stats.savings / stats.volume).toFixed(2) : '0.00';
                         const useCaseNames = stats.useCases.join('; ');
                         csv += `${cat},${stats.useCases.length},${stats.benefitCount},${Math.round(stats.volume)},${Math.round(stats.savings)},${avg},${pct}%,"${useCaseNames}"\n`;
@@ -3587,9 +3604,23 @@
                         });
                     });
                     const totalSavingsAll = Object.values(channelStats).reduce((s, v) => s + v.savings, 0);
+                    
+                    // Check if multiple channels have savings
+                    const channelsWithSavings = Object.values(channelStats).filter(s => s.savings > 0).length;
+                    
                     Object.entries(channelStats).forEach(([ch, stats]) => {
                         const avgImp = stats.improvements.length ? (stats.improvements.reduce((a,b)=>a+b,0)/stats.improvements.length).toFixed(1) : '0.0';
-                        const pct = totalSavingsAll > 0 ? (stats.savings / totalSavingsAll * 100).toFixed(1) : 0;
+                        let pct = '0';
+                        if (totalSavingsAll > 0) {
+                            const percentage = (stats.savings / totalSavingsAll * 100);
+                            if (percentage > 0 && percentage < 0.1) {
+                                pct = '<0.1';
+                            } else if (percentage > 99.9 && percentage < 100 && channelsWithSavings > 1) {
+                                pct = '>99.9';
+                            } else {
+                                pct = percentage.toFixed(1);
+                            }
+                        }
                         const useCaseNames = stats.useCases.join('; ');
                         csv += `${ch},${stats.useCases.length},${Math.round(stats.volume)},${Math.round(stats.savings)},${channelCosts[ch] || 0},${avgImp}%,${pct}%,"${useCaseNames}"\n`;
                     });
@@ -3717,6 +3748,16 @@
                     csv += '\n=== MULTI-BENEFIT USE CASE PERFORMANCE SUMMARY ===\n';
                     csv += 'Use Case,Category,Channel,Total Benefits,Special Group,Total Volume (contacts),Total Value ($),% of Total Value,Primary Value Driver Type\n';
                     const totalSavingsAll = calculateTotalSavings();
+                    
+                    // Calculate how many use cases have savings
+                    const useCasesWithSavings = filteredUseCases.filter(uc => {
+                        let ucSavings = 0;
+                        filteredMonths.forEach(month => {
+                            ucSavings += calculateSavings(uc, month.id);
+                        });
+                        return ucSavings > 0;
+                    }).length;
+                    
                     filteredUseCases.forEach(uc => {
                         const normalizedUC = ensureUseCaseHasBenefits(uc);
                         let totalVolume = 0, totalSavings = 0;
@@ -3727,7 +3768,17 @@
                             totalSavings += calculateSavings(uc, month.id);
                         });
                         
-                        const pct = totalSavingsAll > 0 ? (totalSavings / totalSavingsAll * 100).toFixed(1) : 0;
+                        let pct = '0';
+                        if (totalSavingsAll > 0) {
+                            const percentage = (totalSavings / totalSavingsAll * 100);
+                            if (percentage > 0 && percentage < 0.1) {
+                                pct = '<0.1';
+                            } else if (percentage > 99.9 && percentage < 100 && useCasesWithSavings > 1) {
+                                pct = '>99.9';
+                            } else {
+                                pct = percentage.toFixed(1);
+                            }
+                        }
                         
                         // Determine primary value driver type
                         const valueDriverCounts = { 'Cost Savings': 0, 'Quality Improvement': 0, 'Revenue Generation': 0, 'Cost Avoidance': 0, 'Risk Reduction': 0 };
@@ -3918,7 +3969,25 @@
                     
                     // Initialize all special groups from the nested structure
                     getAllSpecialGroups().forEach(g => {
-                        groupStats[g] = { costType: 'Varies by Category-Channel', value: 'See details', useCases: [], volume: 0, savings: 0 };
+                        let groupFound = false;
+                        let groupCostType = 'Varies';
+                        let groupValue = 'See details';
+                        
+                        // Try to find a representative cost for this special group
+                        Object.values(categoryCosts).forEach(categoryData => {
+                            if (!groupFound) {
+                                Object.values(categoryData).forEach(channelData => {
+                                    if (!groupFound && channelData && channelData._specialGroups && channelData._specialGroups[g]) {
+                                        const groupCost = channelData._specialGroups[g];
+                                        groupCostType = groupCost.costType === 'hourly' ? 'Hourly' : 'Per Contact';
+                                        groupValue = groupCost.value;
+                                        groupFound = true;
+                                    }
+                                });
+                            }
+                        });
+                        
+                        groupStats[g] = { costType: groupCostType, value: groupValue, useCases: [], volume: 0, savings: 0 };
                     });
                     
                     // Initialize "No Special Group"
@@ -3945,9 +4014,23 @@
                     });
                     
                     const totalSavingsAll = Object.values(groupStats).reduce((s, v) => s + v.savings, 0);
+                    
+                    // Check if multiple groups have savings for percentage adjustment
+                    const groupsWithSavings = Object.values(groupStats).filter(s => s.savings > 0).length;
+                    
                     Object.entries(groupStats).forEach(([g, stats]) => {
                         if (stats.useCases.length > 0) {
-                            const pct = totalSavingsAll > 0 ? (stats.savings / totalSavingsAll * 100).toFixed(1) : 0;
+                            let pct = '0';
+                            if (totalSavingsAll > 0) {
+                                const percentage = (stats.savings / totalSavingsAll * 100);
+                                if (percentage > 0 && percentage < 0.1) {
+                                    pct = '<0.1';
+                                } else if (percentage > 99.9 && percentage < 100 && groupsWithSavings > 1) {
+                                    pct = '>99.9';
+                                } else {
+                                    pct = percentage.toFixed(1);
+                                }
+                            }
                             const rate = stats.value;
                             const useCaseNames = stats.useCases.join('; ');
                             csv += `${g},${stats.costType},${rate},${stats.useCases.length},${Math.round(stats.volume)},${Math.round(stats.savings)},${pct}%,"${useCaseNames}"\n`;
@@ -5358,7 +5441,7 @@
                                                     <div key={templateName} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
                                                         <span className="flex-1 text-sm font-medium">{templateName}</span>
                                                         <span className="text-xs text-gray-500">
-                                                            {dataTemplates[templateName].useCases.length} use cases
+                                                            {dataTemplates[templateName]?.useCases?.length || 0} use cases
                                                         </span>
                                                         <button
                                                             onClick={() => loadTemplate(templateName)}
@@ -6045,7 +6128,22 @@
                                                             <td>{Math.round(stats.volume).toLocaleString()}</td>
                                                             <td className="font-bold text-green-600">{`$${Math.round(stats.savings).toLocaleString()}`}</td>
                                                             <td>{stats.volume > 0 ? (stats.savings / stats.volume).toFixed(2) : '0.00'}</td>
-                                                            <td>{totalSavingsAll > 0 ? `${(stats.savings / totalSavingsAll * 100).toFixed(1)}%` : '0%'}</td>
+                                                            <td>{(() => {
+                                                                if (totalSavingsAll <= 0) return '0%';
+                                                                const percentage = (stats.savings / totalSavingsAll * 100);
+                                                                
+                                                                // Check if there are other categories with non-zero savings
+                                                                const otherCategoriesHaveSavings = Object.values(categoryStats).some(
+                                                                    otherStats => otherStats !== stats && otherStats.savings > 0
+                                                                );
+                                                                
+                                                                if (percentage > 0 && percentage < 0.1) {
+                                                                    return '<0.1%';
+                                                                } else if (percentage > 99.9 && percentage < 100 && otherCategoriesHaveSavings) {
+                                                                    return '>99.9%';
+                                                                }
+                                                                return `${percentage.toFixed(1)}%`;
+                                                            })()}</td>
                                                         </tr>
                                                     ));
                                                 })()}
@@ -6106,7 +6204,22 @@
                                                                 <td className="font-bold text-green-600">{`$${Math.round(stats.savings).toLocaleString()}`}</td>
                                                                 <td>{`$${channelCosts[channel]}`}</td>
                                                                 <td>{avgImprovement.toFixed(1)}%</td>
-                                                                <td>{totalSavingsAll > 0 ? `${(stats.savings / totalSavingsAll * 100).toFixed(1)}%` : '0%'}</td>
+                                                                <td>{(() => {
+                                                                    if (totalSavingsAll <= 0) return '0%';
+                                                                    const percentage = (stats.savings / totalSavingsAll * 100);
+                                                                    
+                                                                    // Check if there are other channels with non-zero savings
+                                                                    const otherChannelsHaveSavings = Object.values(channelStats).some(
+                                                                        otherStats => otherStats !== stats && otherStats.savings > 0
+                                                                    );
+                                                                    
+                                                                    if (percentage > 0 && percentage < 0.1) {
+                                                                        return '<0.1%';
+                                                                    } else if (percentage > 99.9 && percentage < 100 && otherChannelsHaveSavings) {
+                                                                        return '>99.9%';
+                                                                    }
+                                                                    return `${percentage.toFixed(1)}%`;
+                                                                })()}</td>
                                                             </tr>
                                                         );
                                                     });
@@ -6218,7 +6331,27 @@
                                                                 <td>{avgImprovementStr}</td>
                                                                 <td className="font-bold text-green-600">{`$${Math.round(totalSavings).toLocaleString()}`}</td>
                                                                 <td className="text-sm">{topContributorStr}</td>
-                                                                <td>{totalSavingsAll > 0 ? `${(totalSavings / totalSavingsAll * 100).toFixed(1)}%` : '0%'}</td>
+                                                                <td>{(() => {
+                                                                    if (totalSavingsAll <= 0) return '0%';
+                                                                    const percentage = (totalSavings / totalSavingsAll * 100);
+                                                                    
+                                                                    // Check if there are other use cases with non-zero savings
+                                                                    const otherUseCasesHaveSavings = useCases.some(otherUC => {
+                                                                        if (otherUC.id === uc.id) return false;
+                                                                        let otherSavings = 0;
+                                                                        filteredMonths.forEach(month => {
+                                                                            otherSavings += calculateSavings(otherUC, month.id);
+                                                                        });
+                                                                        return otherSavings > 0;
+                                                                    });
+                                                                    
+                                                                    if (percentage > 0 && percentage < 0.1) {
+                                                                        return '<0.1%';
+                                                                    } else if (percentage > 99.9 && percentage < 100 && otherUseCasesHaveSavings) {
+                                                                        return '>99.9%';
+                                                                    }
+                                                                    return `${percentage.toFixed(1)}%`;
+                                                                })()}</td>
                                                             </tr>
                                                         );
                                                     });
@@ -6260,10 +6393,46 @@
                                                     const groupStats = {};
                                                     const totalSavingsAll = calculateTotalSavings();
                                                     const filteredMonths = getFilteredMonths();
-                                                    // Skip specialGroups export as they are now nested within categoryCosts
+                                                    // Initialize No Special Group
                                                     groupStats['No Special Group'] = { costType: 'varies', value: '-', useCases: [], volume: 0, savings: 0 };
+                                                    
+                                                    // Initialize all special groups with their cost info
+                                                    getAllSpecialGroups().forEach(group => {
+                                                        let groupFound = false;
+                                                        let groupCostType = 'perContact';
+                                                        let groupValue = 0;
+                                                        
+                                                        // Search through all category-channel combinations for this special group
+                                                        Object.values(categoryCosts).forEach(categoryData => {
+                                                            if (!groupFound) {
+                                                                Object.values(categoryData).forEach(channelData => {
+                                                                    if (!groupFound && channelData && channelData._specialGroups && channelData._specialGroups[group]) {
+                                                                        const groupCost = channelData._specialGroups[group];
+                                                                        groupCostType = groupCost.costType || 'perContact';
+                                                                        groupValue = groupCost.value || 0;
+                                                                        groupFound = true;
+                                                                    }
+                                                                });
+                                                            }
+                                                        });
+                                                        
+                                                        groupStats[group] = { 
+                                                            costType: groupCostType,
+                                                            value: groupValue,
+                                                            useCases: [], 
+                                                            volume: 0, 
+                                                            savings: 0 
+                                                        };
+                                                    });
+                                                    
                                                     useCases.forEach(uc => {
                                                         const key = uc.specialGroup || 'No Special Group';
+                                                        
+                                                        // Ensure the group exists in stats (in case of data inconsistency)
+                                                        if (!groupStats[key]) {
+                                                            groupStats[key] = { costType: 'perContact', value: 0, useCases: [], volume: 0, savings: 0 };
+                                                        }
+                                                        
                                                         groupStats[key].useCases.push(uc.name);
                                                         filteredMonths.forEach(month => {
                                                             const md = uc.data[month.id] || {};
@@ -6279,7 +6448,22 @@
                                                             <td>{stats.useCases.length}</td>
                                                             <td>{Math.round(stats.volume).toLocaleString()}</td>
                                                             <td className="font-bold text-green-600">{`$${Math.round(stats.savings).toLocaleString()}`}</td>
-                                                            <td>{totalSavingsAll > 0 ? `${(stats.savings / totalSavingsAll * 100).toFixed(1)}%` : '0%'}</td>
+                                                            <td>{(() => {
+                                                                if (totalSavingsAll <= 0) return '0%';
+                                                                const percentage = (stats.savings / totalSavingsAll * 100);
+                                                                
+                                                                // Check if there are other groups with non-zero savings
+                                                                const otherGroupsHaveSavings = Object.values(groupStats).some(
+                                                                    otherStats => otherStats !== stats && otherStats.savings > 0
+                                                                );
+                                                                
+                                                                if (percentage > 0 && percentage < 0.1) {
+                                                                    return '<0.1%';
+                                                                } else if (percentage > 99.9 && percentage < 100 && otherGroupsHaveSavings) {
+                                                                    return '>99.9%';
+                                                                }
+                                                                return `${percentage.toFixed(1)}%`;
+                                                            })()}</td>
                                                         </tr>
                                                     ));
                                                 })()}
