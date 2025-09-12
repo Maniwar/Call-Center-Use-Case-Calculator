@@ -611,7 +611,8 @@
                 improvement: {
                     description: "Expected % of the volume that AI will successfully handle without agent",
                     typical: "60-80%",
-                    example: "If AI can handle 70% of the 4,000 simple queries, enter 70"
+                    example: "If AI can handle 70% of the 4,000 simple queries, enter 70",
+                    formula: "Volume × (Deflection% - Baseline%) × Cost per Contact = $ Saved"
                 },
                 industryBenchmarks: {
                     "Password Resets": "85-95%",
@@ -634,7 +635,8 @@
                 improvement: {
                     description: "Minutes saved per contact through AI assistance",
                     typical: "1.5-3 min",
-                    example: "AI helps save 2 minutes per call, enter 2"
+                    example: "AI helps save 2 minutes per call, enter 2",
+                    formula: "Volume × (Minutes Saved - Baseline) × (Cost per Contact ÷ AHT) = $ Saved"
                 },
                 industryBenchmarks: {
                     "Knowledge Suggestions": "1-2 min",
@@ -657,7 +659,8 @@
                 improvement: {
                     description: "Expected % that will be fully automated by AI",
                     typical: "50-70%",
-                    example: "AI can automate 65% of routine tasks, enter 65"
+                    example: "AI can automate 65% of routine tasks, enter 65",
+                    formula: "Volume × (Automation% - Baseline%) × Cost per Contact = $ Saved"
                 },
                 industryBenchmarks: {
                     "Order Processing": "60-75%",
@@ -680,7 +683,8 @@
                 improvement: {
                     description: "Expected % that AI will help resolve without agent",
                     typical: "40-60%",
-                    example: "AI improves resolution to 55%, enter 55"
+                    example: "AI improves resolution to 55%, enter 55",
+                    formula: "Volume × (Resolution% - Baseline%) × Cost per Contact = $ Saved"
                 },
                 industryBenchmarks: {
                     "Product Comparisons": "45-60%",
@@ -703,7 +707,8 @@
                 improvement: {
                     description: "Expected reduction in transfer rate",
                     typical: "30-50%",
-                    example: "Reduce transfers by 40%, enter 40"
+                    example: "Reduce transfers by 40%, enter 40",
+                    formula: "Volume × (Reduction% - Baseline%) × Cost per Contact = $ Saved"
                 },
                 industryBenchmarks: {
                     "Smart Routing": "35-45%",
@@ -719,14 +724,16 @@
                     example: "If current NPS is 30, enter 0 as baseline since we measure improvement"
                 },
                 volume: {
-                    description: "Number of customer interactions that will be improved",
-                    calculation: "Total customer interactions affected by AI",
-                    example: "5,000 customers experiencing better service"
+                    description: "Number of customers surveyed for NPS (not total interactions)",
+                    calculation: "Monthly NPS survey respondents × value per point",
+                    example: "500 survey responses per month",
+                    warning: "⚠️ Use survey count, not interaction volume"
                 },
                 improvement: {
                     description: "Expected NPS point increase from AI implementation",
                     typical: "5-15 points",
-                    example: "If NPS improves from 30 to 40, enter 10"
+                    example: "If NPS improves from 30 to 40, enter 10",
+                    formula: "Survey Count × Points Improved × $50 (customer lifetime value impact)"
                 },
                 industryBenchmarks: {
                     "Faster Resolution": "8-12 points",
@@ -742,14 +749,16 @@
                     example: "If current CSAT is 75%, enter 0 as baseline since we measure improvement"
                 },
                 volume: {
-                    description: "Number of interactions where satisfaction will improve",
-                    calculation: "Customer interactions with AI enhancement",
-                    example: "8,000 customer interactions per month"
+                    description: "Number of surveyed interactions (not all interactions)",
+                    calculation: "Interactions where CSAT is measured",
+                    example: "2,000 CSAT surveys per month",
+                    warning: "⚠️ Only count interactions with CSAT surveys"
                 },
                 improvement: {
                     description: "Expected CSAT percentage point increase",
                     typical: "10-20%",
-                    example: "If CSAT improves from 75% to 85%, enter 10"
+                    example: "If CSAT improves from 75% to 85%, enter 10",
+                    formula: "Surveyed Volume × (% Improvement / 100) × $25 (retention value)"
                 },
                 industryBenchmarks: {
                     "Chatbot Assistance": "8-15%",
@@ -765,14 +774,16 @@
                     example: "If current FCR is 65%, enter 0 as baseline since we measure improvement"
                 },
                 volume: {
-                    description: "Number of contacts where FCR can be improved",
-                    calculation: "Contacts requiring resolution",
-                    example: "6,000 support tickets per month"
+                    description: "Total contacts that could require follow-ups",
+                    calculation: "All contacts needing resolution (not just failures)",
+                    example: "6,000 support tickets per month",
+                    note: "✅ FCR saves money by avoiding repeat contacts"
                 },
                 improvement: {
                     description: "Expected FCR percentage point increase",
                     typical: "15-25%",
-                    example: "If FCR improves from 65% to 80%, enter 15"
+                    example: "If FCR improves from 65% to 80%, enter 15",
+                    formula: "Volume × (% Improvement / 100) × Cost per Contact (avoided repeats)"
                 },
                 industryBenchmarks: {
                     "Knowledge Base AI": "15-20%",
@@ -790,12 +801,14 @@
                 volume: {
                     description: "Number of sales opportunities",
                     calculation: "Leads or prospects engaged",
-                    example: "2,000 qualified leads per month"
+                    example: "2,000 qualified leads per month",
+                    note: "💰 This represents potential sales opportunities, not all contacts"
                 },
                 improvement: {
                     description: "Expected conversion rate percentage point increase",
                     typical: "0.5-2%",
-                    example: "If conversion improves from 3% to 4%, enter 1"
+                    example: "If conversion improves from 3% to 4%, enter 1",
+                    formula: "Opportunities × (New Rate% - Baseline%) × Average Deal Value = $ Revenue Generated"
                 },
                 industryBenchmarks: {
                     "Lead Scoring": "0.8-1.5%",
@@ -813,12 +826,14 @@
                 volume: {
                     description: "Number of agents affected by AI tools",
                     calculation: "Total agents using AI assistance",
-                    example: "100 contact center agents"
+                    example: "100 contact center agents",
+                    warning: "⚠️ Use agent count, not contact volume"
                 },
                 improvement: {
                     description: "Expected reduction in agent turnover",
                     typical: "10-20%",
-                    example: "If turnover reduces from 35% to 25%, enter 10"
+                    example: "If turnover reduces from 35% to 25%, enter 10",
+                    formula: "Agent Count × (Retention Improvement%) × Replacement Cost = $ Saved on Hiring/Training"
                 },
                 industryBenchmarks: {
                     "AI Assistance Tools": "10-15%",
@@ -836,12 +851,14 @@
                 volume: {
                     description: "Number of interactions requiring compliance",
                     calculation: "Regulated interactions or transactions",
-                    example: "10,000 regulated interactions per month"
+                    example: "10,000 regulated interactions per month",
+                    note: "⚖️ Count only interactions subject to compliance requirements"
                 },
                 improvement: {
                     description: "Expected compliance rate percentage point increase",
                     typical: "3-8%",
-                    example: "If compliance improves from 90% to 95%, enter 5"
+                    example: "If compliance improves from 90% to 95%, enter 5",
+                    formula: "Regulated Volume × (Compliance Improvement%) × Cost per Violation = $ Fines/Penalties Avoided"
                 },
                 industryBenchmarks: {
                     "Automated Monitoring": "5-8%",
@@ -877,6 +894,7 @@
                     if (savedData) {
                         const parsed = JSON.parse(savedData);
                         return {
+                            categories: parsed.categories || ['Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'],
                             channelCosts: parsed.channelCosts || ALL_CHANNELS.reduce((acc, ch) => {
                                 // Support both old format (number) and new format (object)
                                 if (typeof parsed.channelCosts?.[ch.id] === 'object') {
@@ -966,6 +984,7 @@
                 
                 // Return sensible defaults with example data
                 return {
+                    categories: ['Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'],
                     channelCosts: ALL_CHANNELS.reduce((acc, ch) => {
                         acc[ch.id] = {
                             costType: 'perContact',
@@ -1115,7 +1134,17 @@
                                 benefits: [{metric: 'Deflection Rate (%)', baselineValue: 0}],
                                 data: {}
                             }
-                        ]
+                        ],
+                        categories: ['Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'],
+                        metricValues: {
+                            npsImprovement: { value: 50, label: 'Value per NPS Point ($)' },
+                            csatImprovement: { value: 25, label: 'Value per CSAT Point ($)' },
+                            fcrImprovement: { value: 15, label: 'Value per FCR % Improvement ($)' },
+                            conversionRate: { value: 200, label: 'Average Deal Value ($)' },
+                            agentRetention: { value: 5000, label: 'Agent Replacement Cost ($)' },
+                            complianceRate: { value: 1000, label: 'Cost per Compliance Violation ($)' }
+                        },
+                        savedDate: '2024-01-01T00:00:00.000Z'
                     },
                     'Technical Support Suite': {
                         useCases: [
@@ -1135,7 +1164,17 @@
                                 benefits: [{metric: 'AHT Reduction (min)', baselineValue: 5}],
                                 data: {}
                             }
-                        ]
+                        ],
+                        categories: ['Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'],
+                        metricValues: {
+                            npsImprovement: { value: 50, label: 'Value per NPS Point ($)' },
+                            csatImprovement: { value: 25, label: 'Value per CSAT Point ($)' },
+                            fcrImprovement: { value: 15, label: 'Value per FCR % Improvement ($)' },
+                            conversionRate: { value: 200, label: 'Average Deal Value ($)' },
+                            agentRetention: { value: 5000, label: 'Agent Replacement Cost ($)' },
+                            complianceRate: { value: 1000, label: 'Cost per Compliance Violation ($)' }
+                        },
+                        savedDate: '2024-01-01T00:00:00.000Z'
                     }
                 };
             });
@@ -1158,6 +1197,14 @@
             const [editingUseCase, setEditingUseCase] = useState(null);
             const [showEditModal, setShowEditModal] = useState(false);
             const [agentUtilization, setAgentUtilization] = useState(initialData.agentUtilization || 75); // Default 75% utilization
+            
+            // Category management
+            const [categories, setCategories] = useState(initialData.categories || [
+                'Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'
+            ]);
+            const [showCategoryManager, setShowCategoryManager] = useState(false);
+            const [newCategoryName, setNewCategoryName] = useState('');
+            const [editingCategory, setEditingCategory] = useState(null);
             
             // Value configuration for non-cost metrics
             const [metricValues, setMetricValues] = useState(initialData.metricValues || {
@@ -1187,7 +1234,7 @@
             const chartInstances = useRef({});
 
             const [newUseCase, setNewUseCase] = useState({
-                category: 'Pre-Sales',
+                category: categories[0] || '',
                 name: '',
                 channel: 'phone',
                 specialGroup: null,
@@ -1211,6 +1258,56 @@
                 setMonths(generateMonthsFromRange(dateRange.start, dateRange.end));
             }, [dateRange]);
 
+            // Category management functions
+            const addCategory = (name) => {
+                if (name && !categories.includes(name)) {
+                    setCategories([...categories, name]);
+                    // Initialize empty cost structure for new category
+                    setCategoryCosts({
+                        ...categoryCosts,
+                        [name]: {}
+                    });
+                }
+            };
+            
+            const editCategory = (oldName, newName) => {
+                if (newName && oldName !== newName) {
+                    // Update categories list
+                    setCategories(categories.map(cat => cat === oldName ? newName : cat));
+                    
+                    // Update category costs
+                    const newCategoryCosts = { ...categoryCosts };
+                    if (newCategoryCosts[oldName]) {
+                        newCategoryCosts[newName] = newCategoryCosts[oldName];
+                        delete newCategoryCosts[oldName];
+                    }
+                    setCategoryCosts(newCategoryCosts);
+                    
+                    // Update use cases with the old category
+                    setUseCases(useCases.map(uc => ({
+                        ...uc,
+                        category: uc.category === oldName ? newName : uc.category
+                    })));
+                }
+            };
+            
+            const removeCategory = (name) => {
+                // Check if any use cases use this category
+                const hasUseCases = useCases.some(uc => uc.category === name);
+                if (hasUseCases) {
+                    alert(`Cannot delete category "${name}" - it has active use cases. Please reassign or delete those use cases first.`);
+                    return;
+                }
+                
+                // Remove from categories
+                setCategories(categories.filter(cat => cat !== name));
+                
+                // Remove from category costs
+                const newCategoryCosts = { ...categoryCosts };
+                delete newCategoryCosts[name];
+                setCategoryCosts(newCategoryCosts);
+            };
+            
             // Auto-save functionality
             useEffect(() => {
                 const saveTimeout = setTimeout(() => {
@@ -1218,6 +1315,7 @@
                         const dataToSave = {
                             channelCosts,
                             categoryCosts,
+                            categories,
                             useCases,
                             dateRange,
                             defaultAHT,
@@ -1235,7 +1333,7 @@
                 }, 1000);
 
                 return () => clearTimeout(saveTimeout);
-            }, [channelCosts, categoryCosts, useCases, dateRange, defaultAHT, agentUtilization, metricValues]);
+            }, [channelCosts, categoryCosts, categories, useCases, dateRange, defaultAHT, agentUtilization, metricValues]);
 
             // Calculate cost based on category-channel hierarchy and special group
             const getEffectiveCost = (useCase, channel) => {
@@ -1438,8 +1536,10 @@
 
             // Helper function to categorize metrics by type for analytics
             const getMetricTypeForMetric = (metric) => {
-                if (metric.includes('NPS') || metric.includes('CSAT') || metric.includes('FCR')) {
+                if (metric.includes('NPS') || metric.includes('CSAT')) {
                     return 'Quality Improvement';
+                } else if (metric.includes('FCR')) {
+                    return 'Cost Savings'; // FCR prevents repeat calls, saving contact costs
                 } else if (metric.includes('Conversion Rate')) {
                     return 'Revenue Generation';
                 } else if (metric.includes('Agent Retention')) {
@@ -2557,7 +2657,7 @@
                         data: {}
                     }]);
                     setNewUseCase({
-                        category: 'Pre-Sales',
+                        category: categories[0] || '',
                         name: '',
                         channel: 'phone',
                         specialGroup: null,
@@ -2833,7 +2933,12 @@
                                 id: Date.now() + Math.random(), // New IDs for template
                                 data: {} // Clean data for template
                             };
-                        })
+                        }),
+                        // Save the current categories configuration with the template
+                        categories: [...categories],
+                        // Save metric values configuration
+                        metricValues: { ...metricValues },
+                        savedDate: new Date().toISOString()
                     }
                 };
                 
@@ -2845,16 +2950,56 @@
                 const template = dataTemplates[templateName];
                 if (!template) return;
                 
-                if (!confirm(`Load template "${templateName}"? This will replace all current use cases.`)) return;
+                // Check if template has categories saved
+                const hasTemplateCategories = template.categories && Array.isArray(template.categories);
+                const hasMetricValues = template.metricValues && typeof template.metricValues === 'object';
+                
+                let confirmMessage = `Load template "${templateName}"? This will replace all current use cases.`;
+                
+                if (hasTemplateCategories) {
+                    confirmMessage += `\n\nThis template includes ${template.categories.length} categories. Your current categories will be replaced.`;
+                }
+                
+                if (hasMetricValues) {
+                    confirmMessage += `\n\nThis template includes configuration values (NPS value, Agent replacement cost, etc.) that will replace your current settings.`;
+                }
+                
+                if (!confirm(confirmMessage)) return;
                 
                 setUndoStack(prev => [...prev.slice(-49), useCases]);
                 setRedoStack([]);
+                
+                // If template has categories, update them
+                if (hasTemplateCategories) {
+                    // Handle both array format (new) and string array format
+                    const templateCategories = typeof template.categories[0] === 'string' 
+                        ? template.categories 
+                        : template.categories.map(c => c.name || c);
+                    setCategories(templateCategories);
+                }
+                
+                // If template has metric values, update them
+                if (hasMetricValues) {
+                    setMetricValues(template.metricValues);
+                }
+                
+                // Load use cases and validate their categories
+                const currentCategoryNames = hasTemplateCategories 
+                    ? (typeof template.categories[0] === 'string' ? template.categories : template.categories.map(c => c.name || c))
+                    : categories;
                 
                 setUseCases(template.useCases.map(uc => {
                     const normalizedUC = ensureUseCaseHasBenefits({
                         ...uc,
                         id: Date.now() + Math.random() // Ensure unique IDs
                     });
+                    
+                    // Validate category exists, if not assign to first available category
+                    if (!currentCategoryNames.includes(normalizedUC.category)) {
+                        console.warn(`Category "${normalizedUC.category}" not found, assigning to "${currentCategoryNames[0]}"`);
+                        normalizedUC.category = currentCategoryNames[0] || 'Pre-Sales';
+                    }
+                    
                     return normalizedUC;
                 }));
             };
@@ -3102,12 +3247,12 @@
                             unit = '%';
                             calculationFormula = 'Volume × (CSAT_% - Baseline%) × Value_per_CSAT_Point';
                         } else if (benefit.metric.includes('FCR Improvement')) {
-                            effectiveCost = metricValues.fcrImprovement?.value || 15;
-                            costSource = 'Quality Metric Value';
-                            costType = 'Value per %';
-                            valueDriverType = 'Quality Improvement';
+                            effectiveCost = getEffectiveCost(uc, uc.channel);
+                            costSource = getCostSourceDescription(uc, uc.channel);
+                            costType = 'Cost per Contact';
+                            valueDriverType = 'Cost Savings';
                             unit = '%';
-                            calculationFormula = 'Volume × (FCR_% - Baseline%) × Value_per_FCR_Point';
+                            calculationFormula = 'Volume × (FCR_% - Baseline%) × Cost_per_Contact';
                         } else if (benefit.metric.includes('Conversion Rate')) {
                             effectiveCost = metricValues.conversionRate?.value || 200;
                             costSource = 'Quality Metric Value';
@@ -3252,6 +3397,61 @@
                 csv += `Cost Avoidance,Agent Retention (%),"Agents × (Retention% - Baseline%) × Replacement_Cost","100 agents × (95% - 85%) × $${metricValues.agentRetention?.value || 5000} = $${(100 * 0.1 * (metricValues.agentRetention?.value || 5000)).toLocaleString()}",Cost Avoidance\n`;
                 csv += `Risk Reduction,Compliance Rate (%),"Volume × (Compliance% - Baseline%) × Cost_per_Violation","1000 × (98% - 90%) × $${metricValues.complianceRate?.value || 1000} = $${(1000 * 0.08 * (metricValues.complianceRate?.value || 1000)).toLocaleString()}",Risk Reduction\n`;
 
+                // NEW SECTION: DETAILED CALCULATION VERIFICATION
+                csv += '\n\n=== DETAILED CALCULATION VERIFICATION ===\n';
+                csv += 'Use Case,Month,Metric,Volume,Improvement,Baseline,Net Change,Cost/Contact,Formula,Step-by-Step Calculation,Result ($)\n';
+                
+                useCases.forEach(uc => {
+                    const normalizedUC = ensureUseCaseHasBenefits(uc);
+                    months.forEach(month => {
+                        const monthData = uc.data[month.id] || {};
+                        const volume = parseFloat(monthData.volume) || 0;
+                        
+                        normalizedUC.benefits.forEach((benefit, benefitIndex) => {
+                            const fieldKey = normalizedUC.benefits.length === 1 
+                                ? `improvement_${benefit.metric}`
+                                : `improvement_${benefitIndex}_${benefit.metric}`;
+                            const improvement = parseFloat(monthData[fieldKey]) || 0;
+                            const baseline = parseFloat(benefit.baselineValue) || 0;
+                            const netImprovement = Math.max(0, improvement - baseline);
+                            const effectiveCost = getEffectiveCost(uc, uc.channel);
+                            const aht = getApplicableAHT(uc);
+                            
+                            let formula = '';
+                            let calculation = '';
+                            let result = 0;
+                            
+                            if (benefit.metric.includes('AHT Reduction')) {
+                                const costPerMinute = aht > 0 ? effectiveCost / aht : 0;
+                                formula = 'Volume × Minutes_Saved × Cost_per_Minute';
+                                calculation = `${volume} × ${netImprovement} min × $${costPerMinute.toFixed(3)}/min`;
+                                result = volume * netImprovement * costPerMinute;
+                            } else if (benefit.metric.includes('FCR')) {
+                                formula = 'Volume × FCR_Improvement% × Cost_per_Contact';
+                                calculation = `${volume} × ${netImprovement}% × $${effectiveCost.toFixed(2)}`;
+                                result = volume * (netImprovement / 100) * effectiveCost;
+                            } else if (benefit.metric.includes('NPS')) {
+                                const npsValue = metricValues.npsImprovement?.value || 50;
+                                formula = 'Survey_Count × Points × Value_per_Point';
+                                calculation = `${volume} × ${netImprovement} pts × $${npsValue}`;
+                                result = volume * netImprovement * npsValue;
+                            } else if (benefit.metric.includes('CSAT')) {
+                                const csatValue = metricValues.csatImprovement?.value || 25;
+                                formula = 'Survey_Count × CSAT% × Value_per_Point';
+                                calculation = `${volume} × ${netImprovement}% × $${csatValue}`;
+                                result = volume * (netImprovement / 100) * csatValue;
+                            } else {
+                                // Default for all percentage-based metrics
+                                formula = 'Volume × Improvement% × Cost_per_Contact';
+                                calculation = `${volume} × ${netImprovement}% × $${effectiveCost.toFixed(2)}`;
+                                result = volume * (netImprovement / 100) * effectiveCost;
+                            }
+                            
+                            csv += `"${uc.name}","${month.month} ${month.year}","${benefit.metric}",${volume},${improvement},${baseline},${netImprovement},${effectiveCost.toFixed(2)},"${formula}","${calculation}",${result.toFixed(2)}\n`;
+                        });
+                    });
+                });
+                
                 // SECTION 5: MONTHLY SUMMARY
                 csv += '\n\n=== SECTION 5: MONTHLY SAVINGS SUMMARY ===\n';
                 csv += 'Month,Total Volume,Total Savings,Cumulative Savings\n';
@@ -3333,8 +3533,10 @@
                     normalizedUC.benefits.forEach((benefit, benefitIndex) => {
                         let valueDriverType = 'Cost Savings'; // default
                         
-                        if (benefit.metric.includes('NPS') || benefit.metric.includes('CSAT') || benefit.metric.includes('FCR')) {
+                        if (benefit.metric.includes('NPS') || benefit.metric.includes('CSAT')) {
                             valueDriverType = 'Quality Improvement';
+                        } else if (benefit.metric.includes('FCR')) {
+                            valueDriverType = 'Cost Savings';
                         } else if (benefit.metric.includes('Conversion Rate')) {
                             valueDriverType = 'Revenue Generation';
                         } else if (benefit.metric.includes('Agent Retention')) {
@@ -3397,8 +3599,10 @@
                     
                     normalizedUC.benefits.forEach(benefit => {
                         let valueDriverType = 'Cost Savings';
-                        if (benefit.metric.includes('NPS') || benefit.metric.includes('CSAT') || benefit.metric.includes('FCR')) {
+                        if (benefit.metric.includes('NPS') || benefit.metric.includes('CSAT')) {
                             valueDriverType = 'Quality Improvement';
+                        } else if (benefit.metric.includes('FCR')) {
+                            valueDriverType = 'Cost Savings'; // FCR is cost-based
                         } else if (benefit.metric.includes('Conversion Rate')) {
                             valueDriverType = 'Revenue Generation';
                         } else if (benefit.metric.includes('Agent Retention')) {
@@ -3747,8 +3951,10 @@
                             else if (benefit.metric.includes('NPS Improvement')) unit = 'points';
                             
                             let valueDriverType = 'Cost Savings';
-                            if (benefit.metric.includes('NPS') || benefit.metric.includes('CSAT') || benefit.metric.includes('FCR')) {
+                            if (benefit.metric.includes('NPS') || benefit.metric.includes('CSAT')) {
                                 valueDriverType = 'Quality Improvement';
+                            } else if (benefit.metric.includes('FCR')) {
+                                valueDriverType = 'Cost Savings';
                             } else if (benefit.metric.includes('Conversion Rate')) {
                                 valueDriverType = 'Revenue Generation';
                             } else if (benefit.metric.includes('Agent Retention')) {
@@ -3800,8 +4006,10 @@
                         const valueDriverCounts = { 'Cost Savings': 0, 'Quality Improvement': 0, 'Revenue Generation': 0, 'Cost Avoidance': 0, 'Risk Reduction': 0 };
                         normalizedUC.benefits.forEach(benefit => {
                             let valueDriverType = 'Cost Savings';
-                            if (benefit.metric.includes('NPS') || benefit.metric.includes('CSAT') || benefit.metric.includes('FCR')) {
+                            if (benefit.metric.includes('NPS') || benefit.metric.includes('CSAT')) {
                                 valueDriverType = 'Quality Improvement';
+                            } else if (benefit.metric.includes('FCR')) {
+                                valueDriverType = 'Cost Savings';
                             } else if (benefit.metric.includes('Conversion Rate')) {
                                 valueDriverType = 'Revenue Generation';
                             } else if (benefit.metric.includes('Agent Retention')) {
@@ -4474,6 +4682,51 @@
                             </h2>
                             
                             <div className="space-y-4">
+                                {/* Calculation Formula */}
+                                {guide.improvement && guide.improvement.formula && (
+                                    <div className="guidance-card" style={{borderLeftColor: '#10B981', backgroundColor: '#F0FDF4'}}>
+                                        <div className="guidance-title">🧮 How ROI is Calculated</div>
+                                        <div className="guidance-content">
+                                            <div className="example-box" style={{backgroundColor: '#DCFCE7'}}>
+                                                <strong>Formula:</strong> {guide.improvement.formula}
+                                            </div>
+                                            {selectedMetricGuide && selectedMetricGuide.includes('FCR') && (
+                                                <p className="text-sm mt-2 text-green-700">
+                                                    FCR improvements prevent repeat calls, saving contact handling costs
+                                                </p>
+                                            )}
+                                            {selectedMetricGuide && selectedMetricGuide.includes('NPS') && (
+                                                <p className="text-sm mt-2 text-blue-700">
+                                                    NPS improvements increase customer lifetime value and reduce churn
+                                                </p>
+                                            )}
+                                            {selectedMetricGuide && selectedMetricGuide.includes('CSAT') && (
+                                                <p className="text-sm mt-2 text-purple-700">
+                                                    CSAT improvements drive retention and positive word-of-mouth
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Volume Warning */}
+                                {guide.volume && (guide.volume.warning || guide.volume.note) && (
+                                    <div className="guidance-card" style={{borderLeftColor: guide.volume.warning ? '#FBbD23' : '#3B82F6'}}>
+                                        <div className="guidance-content">
+                                            {guide.volume.warning && (
+                                                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                                    {guide.volume.warning}
+                                                </div>
+                                            )}
+                                            {guide.volume.note && (
+                                                <div className="p-3 bg-blue-50 border border-blue-200 rounded mt-2">
+                                                    {guide.volume.note}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                
                                 <div className="guidance-card">
                                     <div className="guidance-title">📊 Baseline Value</div>
                                     <div className="guidance-content">
@@ -4877,6 +5130,100 @@
                                                 </div>
                                             );
                                         })}
+                                    </div>
+                                </div>
+                                
+                                {/* Category Manager */}
+                                <div className="settings-section">
+                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                                        <Icons.Plus /> Manage Categories
+                                    </h3>
+                                    <div className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded">
+                                        <strong>📁 Categories:</strong> Add, edit, or remove business categories. Categories organize your use cases and cost configurations.
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        {/* Add new category */}
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={newCategoryName}
+                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                placeholder="Enter new category name..."
+                                                className="flex-1 px-3 py-2 border rounded"
+                                                onKeyPress={(e) => {
+                                                    if (e.key === 'Enter' && newCategoryName.trim()) {
+                                                        addCategory(newCategoryName.trim());
+                                                        setNewCategoryName('');
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    if (newCategoryName.trim()) {
+                                                        addCategory(newCategoryName.trim());
+                                                        setNewCategoryName('');
+                                                    }
+                                                }}
+                                                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                                            >
+                                                <Icons.Plus /> Add Category
+                                            </button>
+                                        </div>
+                                        
+                                        {/* List existing categories */}
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {categories.map(category => (
+                                                <div key={category} className="flex items-center justify-between p-2 bg-white border rounded">
+                                                    {editingCategory === category ? (
+                                                        <input
+                                                            type="text"
+                                                            defaultValue={category}
+                                                            className="flex-1 px-2 py-1 border rounded mr-2"
+                                                            autoFocus
+                                                            onBlur={(e) => {
+                                                                if (e.target.value.trim() && e.target.value !== category) {
+                                                                    editCategory(category, e.target.value.trim());
+                                                                }
+                                                                setEditingCategory(null);
+                                                            }}
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    if (e.target.value.trim() && e.target.value !== category) {
+                                                                        editCategory(category, e.target.value.trim());
+                                                                    }
+                                                                    setEditingCategory(null);
+                                                                }
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            <span className="font-medium">{category}</span>
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => setEditingCategory(category)}
+                                                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                                                    title="Edit category"
+                                                                >
+                                                                    ✏️
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => removeCategory(category)}
+                                                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                                    title="Delete category"
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        
+                                        {categories.length === 0 && (
+                                            <div className="text-gray-500 italic">No categories defined. Add your first category above.</div>
+                                        )}
                                     </div>
                                 </div>
                                 
@@ -5364,10 +5711,9 @@
                                                             disabled={selectedUseCases.size === 0}
                                                         >
                                                             <option value="">Select category...</option>
-                                                            <option value="Pre-Sales">Pre-Sales</option>
-                                                            <option value="Order Support">Order Support</option>
-                                                            <option value="Technical Support">Technical Support</option>
-                                                            <option value="Customer Service">Customer Service</option>
+                                                            {categories.map(cat => (
+                                                                <option key={cat} value={cat}>{cat}</option>
+                                                            ))}
                                                         </select>
                                                     </div>
                                                     <div>
@@ -5839,10 +6185,9 @@
                                                     onChange={(e) => setNewUseCase({...newUseCase, category: e.target.value})}
                                                     className="px-3 py-2 border rounded"
                                                 >
-                                                    <option value="Pre-Sales">Pre-Sales</option>
-                                                    <option value="Order Support">Order Support</option>
-                                                    <option value="Technical Support">Technical Support</option>
-                                                    <option value="Customer Service">Customer Service</option>
+                                                    {categories.map(cat => (
+                                                        <option key={cat} value={cat}>{cat}</option>
+                                                    ))}
                                                 </select>
                                                 <input
                                                     type="text"
@@ -5887,7 +6232,7 @@
                                                             className="px-2 py-1 border rounded text-sm col-span-3"
                                                         >
                                                             {getAvailableMetrics().map(metric => (
-                                                                <option key={metric} value={metric}>{metric}</option>
+                                                                <option key={metric} value={metric} disabled={newUseCase.benefits.some((b, idx) => idx !== index && b.metric === metric)}>{metric}</option>
                                                             ))}
                                                         </select>
                                                         <input
@@ -5922,12 +6267,21 @@
                                                 ))}
                                                 <button
                                                     onClick={() => {
-                                                        setNewUseCase({
-                                                            ...newUseCase, 
-                                                            benefits: [...newUseCase.benefits, {metric: 'Deflection Rate (%)', baselineValue: 0}]
-                                                        });
+                                                        // Find a metric that isn't already used
+                                                        const availableMetrics = getAvailableMetrics().filter(m => 
+                                                            !newUseCase.benefits.some(b => b.metric === m)
+                                                        );
+                                                        if (availableMetrics.length > 0) {
+                                                            setNewUseCase({
+                                                                ...newUseCase, 
+                                                                benefits: [...newUseCase.benefits, {metric: availableMetrics[0], baselineValue: 0}]
+                                                            });
+                                                        } else {
+                                                            alert('All available metrics have been added.');
+                                                        }
                                                     }}
                                                     className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                                    disabled={newUseCase.benefits.length >= getAvailableMetrics().length}
                                                 >
                                                     Add Benefit
                                                 </button>
@@ -6111,7 +6465,7 @@
                                             <h3 className="text-lg font-semibold mb-2">Category Performance Analysis</h3>
                                             <div className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded">
                                                 <strong>Calculation Note:</strong> Savings = Volume × (Improvement - Baseline) × Effective Cost per Contact. 
-                                                Effective cost is determined by hierarchy: Special Group > Category > Channel defaults. 
+                                                Effective cost is determined by hierarchy: Special Group {'>'} Category {'>'} Channel defaults. 
                                                 For AHT metrics, costs are converted to per-minute rates.
                                             </div>
                                         <table className="analytics-table">
@@ -6543,6 +6897,37 @@
                                             />
                                         </div>
                                         
+                                        {/* Edit Category and Channel */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1">Category</label>
+                                                <select
+                                                    value={editingUseCase.category}
+                                                    onChange={(e) => setEditingUseCase({...editingUseCase, category: e.target.value})}
+                                                    className="w-full px-3 py-2 border rounded-md"
+                                                >
+                                                    {categories.map(category => (
+                                                        <option key={category} value={category}>{category}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1">Channel</label>
+                                                <select
+                                                    value={editingUseCase.channel}
+                                                    onChange={(e) => setEditingUseCase({...editingUseCase, channel: e.target.value})}
+                                                    className="w-full px-3 py-2 border rounded-md"
+                                                >
+                                                    <option value="phone">Phone</option>
+                                                    <option value="chat">Chat</option>
+                                                    <option value="email">Email</option>
+                                                    <option value="sms">SMS</option>
+                                                    <option value="social">Social</option>
+                                                    <option value="bot">Bot</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
                                         {/* Edit Benefits */}
                                         <div>
                                             <h4 className="font-medium mb-2">Benefits (Value Drivers)</h4>
@@ -6558,7 +6943,7 @@
                                                         className="col-span-3 px-3 py-2 border rounded"
                                                     >
                                                         {getAvailableMetrics().map(metric => (
-                                                            <option key={metric} value={metric}>{metric}</option>
+                                                            <option key={metric} value={metric} disabled={editingUseCase?.benefits?.some((b, idx) => idx !== index && b.metric === metric)}>{metric}</option>
                                                         ))}
                                                     </select>
                                                     <input
@@ -6591,12 +6976,21 @@
                                             {/* Add New Benefit Button */}
                                             <button
                                                 onClick={() => {
-                                                    setEditingUseCase({
-                                                        ...editingUseCase, 
-                                                        benefits: [...(editingUseCase.benefits || []), {metric: 'Deflection Rate (%)', baselineValue: 0}]
-                                                    });
+                                                    // Find a metric that isn't already used
+                                                    const availableMetrics = getAvailableMetrics().filter(m => 
+                                                        !editingUseCase.benefits.some(b => b.metric === m)
+                                                    );
+                                                    if (availableMetrics.length > 0) {
+                                                        setEditingUseCase({
+                                                            ...editingUseCase, 
+                                                            benefits: [...(editingUseCase.benefits || []), {metric: availableMetrics[0], baselineValue: 0}]
+                                                        });
+                                                    } else {
+                                                        alert('All available metrics have been added.');
+                                                    }
                                                 }}
                                                 className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 mt-2"
+                                                disabled={editingUseCase?.benefits?.length >= getAvailableMetrics().length}
                                             >
                                                 Add Benefit
                                             </button>
