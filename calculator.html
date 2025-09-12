@@ -5031,6 +5031,153 @@
                 window.URL.revokeObjectURL(url);
             };
 
+            // Export Analytics view to Excel with formulas
+            const exportAnalyticsExcel = () => {
+                const TAB = '\t';
+                let excel = '';
+                
+                // Header
+                excel += `AI ROI CALCULATOR - ${analyticsView.toUpperCase()} ANALYTICS\n`;
+                excel += `Export Date${TAB}${new Date().toISOString().split('T')[0]}\n`;
+                excel += `Analysis Period${TAB}${analyticsDateRange.start} to ${analyticsDateRange.end}\n`;
+                excel += '\n';
+                
+                // Get filtered data
+                const filteredUseCases = getFilteredUseCases();
+                const filteredMonths = getFilteredMonths();
+                
+                if (analyticsView === 'overall' || analyticsView === 'benefit') {
+                    // Detailed calculation view with formulas
+                    excel += `Use Case${TAB}Category${TAB}Channel${TAB}Benefit${TAB}Month${TAB}Volume${TAB}Improvement${TAB}Baseline${TAB}Net Improvement${TAB}Cost${TAB}Savings\n`;
+                    
+                    let row = 6; // Data starts at row 6
+                    const startRow = row;
+                    
+                    filteredUseCases.forEach(uc => {
+                        const normalizedUC = ensureUseCaseHasBenefits(uc);
+                        normalizedUC.benefits.forEach((benefit, idx) => {
+                            filteredMonths.forEach(month => {
+                                const monthData = uc.data[month.id] || {};
+                                const volumeKey = normalizedUC.benefits.length === 1 
+                                    ? `volume_${benefit.metric}` 
+                                    : `volume_${idx}_${benefit.metric}`;
+                                const improvementKey = normalizedUC.benefits.length === 1 
+                                    ? `improvement_${benefit.metric}` 
+                                    : `improvement_${idx}_${benefit.metric}`;
+                                
+                                const volume = parseFloat(monthData[volumeKey] || 0);
+                                const improvement = parseFloat(monthData[improvementKey] || 0);
+                                const baseline = benefit.baselineValue || 0;
+                                const cost = getEffectiveCost(uc, uc.channel);
+                                
+                                // Generate appropriate formula based on metric type
+                                const metricConfig = METRIC_CONFIG[benefit.metric];
+                                let savingsFormula;
+                                
+                                if (!metricConfig) {
+                                    savingsFormula = `=G${row}*(I${row}/100)*J${row}`;
+                                } else {
+                                    switch (metricConfig.type) {
+                                        case 'time_cost':
+                                            const aht = getApplicableAHT(uc) || defaultAHT;
+                                            const costPerMin = cost / aht;
+                                            savingsFormula = `=G${row}*MIN(I${row},${aht})*${costPerMin.toFixed(4)}`;
+                                            break;
+                                        case 'percentage_cost':
+                                            savingsFormula = `=G${row}*(I${row}/100)*J${row}`;
+                                            break;
+                                        case 'fcr_special':
+                                            savingsFormula = `=G${row}*(I${row}/100)*J${row}*0.3`;
+                                            break;
+                                        case 'points_value':
+                                            const pointValue = getEffectiveMetricValue(metricConfig.metricKey, uc);
+                                            savingsFormula = `=G${row}*I${row}*${pointValue}`;
+                                            break;
+                                        case 'percentage_value':
+                                            const pctValue = getEffectiveMetricValue(metricConfig.metricKey, uc);
+                                            savingsFormula = `=G${row}*(I${row}/100)*${pctValue}`;
+                                            break;
+                                        default:
+                                            savingsFormula = `=G${row}*(I${row}/100)*J${row}`;
+                                    }
+                                }
+                                
+                                excel += `${uc.name}${TAB}${uc.category}${TAB}${uc.channel}${TAB}${benefit.metric}${TAB}${month.month} ${month.year}${TAB}`;
+                                excel += `${volume}${TAB}${improvement}${TAB}${baseline}${TAB}=MAX(0,G${row}-H${row})${TAB}${cost.toFixed(2)}${TAB}${savingsFormula}\n`;
+                                row++;
+                            });
+                        });
+                    });
+                    
+                    // Summary
+                    excel += '\n';
+                    excel += `TOTAL SAVINGS${TAB}=SUM(K${startRow}:K${row-1})\n`;
+                    
+                } else {
+                    // Aggregated view by category/channel/use case
+                    excel += `${analyticsView === 'category' ? 'Category' : analyticsView === 'channel' ? 'Channel' : analyticsView === 'usecase' ? 'Use Case' : 'Special Group'}${TAB}Volume${TAB}Savings${TAB}Percentage\n`;
+                    
+                    let row = 5;
+                    const dataRows = [];
+                    
+                    if (analyticsView === 'category') {
+                        categories.forEach(category => {
+                            const catUseCases = filteredUseCases.filter(uc => uc.category === category);
+                            let volume = 0, savings = 0;
+                            catUseCases.forEach(uc => {
+                                filteredMonths.forEach(month => {
+                                    const monthData = uc.data[month.id] || {};
+                                    volume += getTotalVolumeForUseCaseMonth(uc, monthData);
+                                    savings += calculateSavings(uc, month.id);
+                                });
+                            });
+                            if (savings > 0) {
+                                dataRows.push({ name: category, volume, savings, row });
+                                excel += `${category}${TAB}${Math.round(volume)}${TAB}${Math.round(savings)}${TAB}`;
+                                row++;
+                            }
+                        });
+                    } else if (analyticsView === 'channel') {
+                        ALL_CHANNELS.forEach(ch => {
+                            const channelUseCases = filteredUseCases.filter(uc => uc.channel === ch.id);
+                            let volume = 0, savings = 0;
+                            channelUseCases.forEach(uc => {
+                                filteredMonths.forEach(month => {
+                                    const monthData = uc.data[month.id] || {};
+                                    volume += getTotalVolumeForUseCaseMonth(uc, monthData);
+                                    savings += calculateSavings(uc, month.id);
+                                });
+                            });
+                            if (savings > 0) {
+                                dataRows.push({ name: ch.name, volume, savings, row });
+                                excel += `${ch.name}${TAB}${Math.round(volume)}${TAB}${Math.round(savings)}${TAB}`;
+                                row++;
+                            }
+                        });
+                    }
+                    
+                    // Add percentage formulas
+                    const startDataRow = 5;
+                    const endDataRow = row - 1;
+                    dataRows.forEach((data, idx) => {
+                        const currentRow = startDataRow + idx;
+                        excel += `=C${currentRow}/SUM(C${startDataRow}:C${endDataRow})*100\n`;
+                    });
+                    
+                    // Total row
+                    excel += `\nTOTAL${TAB}=SUM(B${startDataRow}:B${endDataRow})${TAB}=SUM(C${startDataRow}:C${endDataRow})${TAB}100\n`;
+                }
+                
+                // Download as Excel
+                const blob = new Blob([excel], { type: 'application/vnd.ms-excel' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `analytics_${analyticsView}_excel_${new Date().toISOString().split('T')[0]}.xls`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            };
+
             // Excel export with live formulas for full traceability and automatic calculations
             const exportToExcel = () => {
                 // Create a tab-separated file for better Excel formula recognition
@@ -7762,8 +7909,9 @@
                                         </div>
                                         <div className="flex items-end">
                                             <div className="px-4 py-2 bg-blue-100 text-blue-700 rounded">Analyzing {getFilteredMonths().length} months</div>
-                                            <div className="ml-auto">
-                                                <button onClick={exportAnalyticsCSV} className="ml-3 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Export Current View CSV</button>
+                                            <div className="ml-auto flex gap-2">
+                                                <button onClick={exportAnalyticsCSV} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700">Export CSV</button>
+                                                <button onClick={exportAnalyticsExcel} className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Export Excel</button>
                                             </div>
                                         </div>
                                     </div>
