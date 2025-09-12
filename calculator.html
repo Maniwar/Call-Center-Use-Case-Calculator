@@ -1830,7 +1830,7 @@
                 'AHT Reduction (min)': {
                     type: 'time_cost',
                     formula: 'volume * cappedMinutes * costPerMinute',
-                    excelFormula: (row, costPerMinute) => `=G${row}*MIN(J${row},${costPerMinute.aht})*${costPerMinute.rate}`,
+                    excelFormula: (row, params) => `=G${row}*MIN(J${row},${params.aht})*${params.rate}`,
                     requiresAHT: true,
                     description: 'Minutes saved per contact'
                 },
@@ -5064,7 +5064,10 @@
                                     case 'time_cost': {
                                         const aht = getApplicableAHT(uc) || defaultAHT;
                                         const costPerMinute = effectiveCost / aht;
-                                        savingsFormula = metricConfig.excelFormula(currentRow, { aht, rate: costPerMinute.toFixed(4) });
+                                        savingsFormula = metricConfig.excelFormula(currentRow, { 
+                                            aht: aht.toFixed(2), 
+                                            rate: costPerMinute.toFixed(4) 
+                                        });
                                         break;
                                     }
                                     
