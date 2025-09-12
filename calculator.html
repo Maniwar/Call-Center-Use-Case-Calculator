@@ -1957,6 +1957,25 @@
                 return ['Cost Savings', 'Quality Improvement', 'Revenue Generation', 'Cost Avoidance', 'Risk Reduction'];
             };
             
+            // Helper functions for channel cost extraction to handle both number and object formats
+            const getChannelCostValue = (channel) => {
+                const cost = channelCosts[channel];
+                if (!cost) return 0;
+                return typeof cost === 'object' ? cost.value : cost;
+            };
+
+            const getChannelCostType = (channel) => {
+                const cost = channelCosts[channel];
+                if (!cost || typeof cost !== 'object') return 'perContact';
+                return cost.costType || 'perContact';
+            };
+
+            const getChannelAHT = (channel) => {
+                const cost = channelCosts[channel];
+                if (!cost || typeof cost !== 'object') return defaultAHT;
+                return cost.ahtMinutes || defaultAHT;
+            };
+            
             // Curve interpolation functions
             const interpolateValue = (startVal, endVal, progress, curve) => {
                 const delta = endVal - startVal;
@@ -4070,8 +4089,8 @@
                 
                 Object.entries(channelTotals).forEach(([channel, savings]) => {
                     const percentage = totalSavingsAll > 0 ? (savings / totalSavingsAll * 100).toFixed(1) : 0;
-                    // Handle both simple numbers and object format for channel costs
-                    const channelCost = typeof channelCosts[channel] === 'object' ? channelCosts[channel].value : (channelCosts[channel] || 0);
+                    // Use helper function for channel cost extraction
+                    const channelCost = getChannelCostValue(channel);
                     csv += `${channel},${channelVolumes[channel]},${savings.toFixed(2)},${channelCost},${percentage}%\n`;
                 });
                 
@@ -4407,8 +4426,8 @@
                             }
                         }
                         const useCaseNames = stats.useCases.join('; ');
-                        // Handle both simple numbers and object format for channel costs
-                        const channelCost = typeof channelCosts[ch] === 'object' ? channelCosts[ch].value : (channelCosts[ch] || 0);
+                        // Use helper function for channel cost extraction
+                        const channelCost = getChannelCostValue(ch);
                         csv += `${ch},${stats.useCases.length},${Math.round(stats.volume)},${Math.round(stats.savings)},${channelCost},${avgImp}%,${pct}%,"${useCaseNames}"\n`;
                     });
                     
@@ -4419,8 +4438,8 @@
                             filteredUseCases.some(uc => uc.channel === ch && uc.category === cat)).join('; ') || 'None';
                         const specialOverrides = getAllSpecialGroups().filter(sg => 
                             filteredUseCases.some(uc => uc.channel === ch && uc.specialGroup === sg)).join('; ') || 'None';
-                        // Handle both simple numbers and object format for channel costs
-                        const channelCost = typeof channelCosts[ch] === 'object' ? channelCosts[ch].value : (channelCosts[ch] || 0);
+                        // Use helper function for channel cost extraction
+                        const channelCost = getChannelCostValue(ch);
                         csv += `${ch},${channelCost},"${categoryOverrides}","${specialOverrides}"\n`;
                     });
                     
@@ -4705,7 +4724,7 @@
                                 }
                             }
                         } else {
-                            costSourceDetails = `Channel Default: $${channelCosts[uc.channel]}/contact`;
+                            costSourceDetails = `Channel Default: $${getChannelCostValue(uc.channel)}/contact`;
                         }
                         
                         // Build formulas for each benefit
@@ -4875,7 +4894,7 @@
                         
                         const costSource = getCostSourceDescription(uc, uc.channel);
                         const effectiveCost = getEffectiveCost(uc, uc.channel);
-                        let costDetail = `$${channelCosts[uc.channel]}/contact`;
+                        let costDetail = `$${getChannelCostValue(uc.channel)}/contact`;
                         
                         if (categoryCosts[uc.category]) {
                             const categoryData = categoryCosts[uc.category];
@@ -7906,7 +7925,7 @@
                                                                 <td>{stats.useCases.length}</td>
                                                                 <td>{Math.round(stats.volume).toLocaleString()}</td>
                                                                 <td className="font-bold text-green-600">{`$${Math.round(stats.savings).toLocaleString()}`}</td>
-                                                                <td>{`$${typeof channelCosts[channel] === 'object' ? channelCosts[channel].value : channelCosts[channel]}`}</td>
+                                                                <td>{`$${getChannelCostValue(channel)}`}</td>
                                                                 <td>{avgImprovement.toFixed(1)}%</td>
                                                                 <td>{(() => {
                                                                     if (totalSavingsAll <= 0) return '0%';
