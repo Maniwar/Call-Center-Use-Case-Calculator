@@ -7776,17 +7776,44 @@
                                                             else if (benefit.metric.includes('points')) avgImprovementStr = `${avg.toFixed(1)} pts`;
                                                             else avgImprovementStr = `${avg.toFixed(1)}%`;
                                                         } else {
-                                                            // Multiple benefits - show breakdown
-                                                            const breakdownParts = normalizedUC.benefits.map(benefit => {
+                                                            // Multiple benefits - create mini tags for display
+                                                            const breakdownParts = normalizedUC.benefits.slice(0, 3).map(benefit => {
+                                                                const improvements = benefitImprovements[benefit.metric] || [];
+                                                                const avg = improvements.length ? (improvements.reduce((a,b)=>a+b,0)/improvements.length) : 0;
+                                                                const shortName = benefit.metric.split('(')[0].trim();
+                                                                
+                                                                // Pick a color based on metric type
+                                                                let bgColor = 'bg-blue-100 text-blue-800';
+                                                                if (benefit.metric.includes('AHT')) bgColor = 'bg-green-100 text-green-800';
+                                                                else if (benefit.metric.includes('NPS') || benefit.metric.includes('CSAT')) bgColor = 'bg-purple-100 text-purple-800';
+                                                                else if (benefit.metric.includes('Conversion') || benefit.metric.includes('Revenue')) bgColor = 'bg-yellow-100 text-yellow-800';
+                                                                else if (benefit.metric.includes('Compliance')) bgColor = 'bg-red-100 text-red-800';
+                                                                
+                                                                let value = '';
+                                                                if (benefit.metric.includes('min')) value = `${avg.toFixed(1)}min`;
+                                                                else if (benefit.metric.includes('points')) value = `${avg.toFixed(1)}pts`;
+                                                                else value = `${avg.toFixed(1)}%`;
+                                                                
+                                                                return { shortName, value, bgColor };
+                                                            });
+                                                            
+                                                            // If more than 3 benefits, add a "+X more" indicator
+                                                            const hasMore = normalizedUC.benefits.length > 3;
+                                                            const moreCount = normalizedUC.benefits.length - 3;
+                                                            
+                                                            avgImprovementStr = breakdownParts;
+                                                            avgImprovementTitle = normalizedUC.benefits.map(benefit => {
                                                                 const improvements = benefitImprovements[benefit.metric] || [];
                                                                 const avg = improvements.length ? (improvements.reduce((a,b)=>a+b,0)/improvements.length) : 0;
                                                                 const shortName = benefit.metric.split('(')[0].trim();
                                                                 if (benefit.metric.includes('min')) return `${shortName}: ${avg.toFixed(1)}min`;
                                                                 if (benefit.metric.includes('points')) return `${shortName}: ${avg.toFixed(1)}pts`;
                                                                 return `${shortName}: ${avg.toFixed(1)}%`;
-                                                            });
-                                                            avgImprovementStr = `Multiple (${normalizedUC.benefits.length} types)`;
-                                                            avgImprovementTitle = breakdownParts.join(', ');
+                                                            }).join(', ');
+                                                            
+                                                            if (hasMore) {
+                                                                avgImprovementStr.moreCount = moreCount;
+                                                            }
                                                         }
                                                         
                                                         // Format top contributor display
@@ -7802,7 +7829,24 @@
                                                                 <td title={benefitSummary}>{normalizedUC.benefits.length} benefit{normalizedUC.benefits.length !== 1 ? 's' : ''}</td>
                                                                 <td>{uc.specialGroup || '-'}</td>
                                                                 <td>{Math.round(totalVolume).toLocaleString()}</td>
-                                                                <td title={avgImprovementTitle || null}>{avgImprovementStr}</td>
+                                                                <td title={avgImprovementTitle || null}>
+                                                                    {typeof avgImprovementStr === 'string' ? (
+                                                                        avgImprovementStr
+                                                                    ) : (
+                                                                        <div className="flex flex-wrap gap-1">
+                                                                            {avgImprovementStr.map((item, idx) => (
+                                                                                <span key={idx} className={`inline-block px-1.5 py-0.5 text-[9px] rounded ${item.bgColor}`}>
+                                                                                    {item.shortName}: {item.value}
+                                                                                </span>
+                                                                            ))}
+                                                                            {avgImprovementStr.moreCount && (
+                                                                                <span className="inline-block px-1.5 py-0.5 text-[9px] rounded bg-gray-100 text-gray-600">
+                                                                                    +{avgImprovementStr.moreCount} more
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </td>
                                                                 <td className="font-bold text-green-600">{`$${Math.round(totalSavings).toLocaleString()}`}</td>
                                                                 <td className="text-sm">{topContributorStr}</td>
                                                                 <td>{(() => {
