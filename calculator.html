@@ -1118,6 +1118,7 @@
             const [useCases, setUseCases] = useState(initialData.useCases);
             const [bulkEditMode, setBulkEditMode] = useState(false);
             const [selectedUseCases, setSelectedUseCases] = useState(new Set());
+            const [fillMode, setFillMode] = useState('constant'); // 'constant' or 'gradual'
             const [undoStack, setUndoStack] = useState([]);
             const [redoStack, setRedoStack] = useState([]);
             const [unsavedChanges, setUnsavedChanges] = useState(new Set());
@@ -1175,6 +1176,158 @@
                             complianceRate: { value: 1000, label: 'Cost per Compliance Violation ($)' }
                         },
                         savedDate: '2024-01-01T00:00:00.000Z'
+                    },
+                    'Comprehensive Test Suite': {
+                        useCases: [
+                            // Test Cost-based metrics with different channels
+                            {
+                                id: Date.now() + 100,
+                                category: 'Customer Service',
+                                name: 'Test: Deflection (Phone)',
+                                channel: 'phone',
+                                specialGroup: '',
+                                benefits: [{metric: 'Deflection Rate (%)', baselineValue: 10}],
+                                data: {
+                                    'month-1': {
+                                        'volume_Deflection Rate (%)': 1000,  // Contacts
+                                        'improvement_Deflection Rate (%)': 50  // 50% deflection
+                                    }
+                                }
+                            },
+                            {
+                                id: Date.now() + 101,
+                                category: 'Technical Support',
+                                name: 'Test: AHT Reduction (Chat)',
+                                channel: 'chat',
+                                specialGroup: 'Tier 1',
+                                benefits: [{metric: 'AHT Reduction (min)', baselineValue: 2}],
+                                data: {
+                                    'month-1': {
+                                        'volume_AHT Reduction (min)': 500,  // Contacts
+                                        'improvement_AHT Reduction (min)': 5  // 5 minutes saved
+                                    }
+                                }
+                            },
+                            {
+                                id: Date.now() + 102,
+                                category: 'Order Support',
+                                name: 'Test: FCR Improvement',
+                                channel: 'email',
+                                specialGroup: '',
+                                benefits: [{metric: 'FCR Improvement (%)', baselineValue: 70}],
+                                data: {
+                                    'month-1': {
+                                        'volume_FCR Improvement (%)': 800,  // Contacts
+                                        'improvement_FCR Improvement (%)': 85  // 85% FCR
+                                    }
+                                }
+                            },
+                            // Test Value-based metrics with different volume types
+                            {
+                                id: Date.now() + 103,
+                                category: 'Customer Service',
+                                name: 'Test: NPS Improvement',
+                                channel: 'phone',
+                                specialGroup: '',
+                                benefits: [{metric: 'NPS Improvement (points)', baselineValue: 0}],
+                                data: {
+                                    'month-1': {
+                                        'volume_NPS Improvement (points)': 200,  // Surveys
+                                        'improvement_NPS Improvement (points)': 5  // 5 point improvement
+                                    }
+                                }
+                            },
+                            {
+                                id: Date.now() + 104,
+                                category: 'Pre-Sales',
+                                name: 'Test: Conversion Rate',
+                                channel: 'chat',
+                                specialGroup: '',
+                                benefits: [{metric: 'Conversion Rate (%)', baselineValue: 5}],
+                                data: {
+                                    'month-1': {
+                                        'volume_Conversion Rate (%)': 100,  // Opportunities
+                                        'improvement_Conversion Rate (%)': 15  // 15% conversion
+                                    }
+                                }
+                            },
+                            {
+                                id: Date.now() + 105,
+                                category: 'Technical Support',
+                                name: 'Test: Agent Retention',
+                                channel: 'phone',
+                                specialGroup: 'Offshore',
+                                benefits: [{metric: 'Agent Retention (%)', baselineValue: 80}],
+                                data: {
+                                    'month-1': {
+                                        'volume_Agent Retention (%)': 50,  // Agents
+                                        'improvement_Agent Retention (%)': 90  // 90% retention
+                                    }
+                                }
+                            },
+                            // Test Multiple Benefits in one use case
+                            {
+                                id: Date.now() + 106,
+                                category: 'Customer Service',
+                                name: 'Test: Multi-Benefit Case',
+                                channel: 'bot',
+                                specialGroup: '',
+                                benefits: [
+                                    {metric: 'Deflection Rate (%)', baselineValue: 20},
+                                    {metric: 'NPS Improvement (points)', baselineValue: 0},
+                                    {metric: 'AHT Reduction (min)', baselineValue: 1}
+                                ],
+                                data: {
+                                    'month-1': {
+                                        'volume_0_Deflection Rate (%)': 2000,  // Contacts for deflection
+                                        'improvement_0_Deflection Rate (%)': 60,  // 60% deflection
+                                        'volume_1_NPS Improvement (points)': 150,  // Surveys for NPS
+                                        'improvement_1_NPS Improvement (points)': 3,  // 3 point improvement
+                                        'volume_2_AHT Reduction (min)': 1500,  // Contacts for AHT
+                                        'improvement_2_AHT Reduction (min)': 4  // 4 minutes saved
+                                    }
+                                }
+                            },
+                            // Test edge cases
+                            {
+                                id: Date.now() + 107,
+                                category: 'Order Support',
+                                name: 'Test: Zero Baseline',
+                                channel: 'sms',
+                                specialGroup: '',
+                                benefits: [{metric: 'Automation Rate (%)', baselineValue: 0}],
+                                data: {
+                                    'month-1': {
+                                        'volume_Automation Rate (%)': 300,
+                                        'improvement_Automation Rate (%)': 75
+                                    }
+                                }
+                            },
+                            {
+                                id: Date.now() + 108,
+                                category: 'Technical Support',
+                                name: 'Test: High Baseline',
+                                channel: 'social',
+                                specialGroup: 'Tier 2',
+                                benefits: [{metric: 'Self-Service Resolution (%)', baselineValue: 50}],
+                                data: {
+                                    'month-1': {
+                                        'volume_Self-Service Resolution (%)': 400,
+                                        'improvement_Self-Service Resolution (%)': 80  // Only 30% net improvement
+                                    }
+                                }
+                            }
+                        ],
+                        categories: ['Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'],
+                        metricValues: {
+                            npsImprovement: { value: 100, label: 'Value per NPS Point ($)' },
+                            csatImprovement: { value: 50, label: 'Value per CSAT Point ($)' },
+                            fcrImprovement: { value: 20, label: 'Value per FCR % Improvement ($)' },
+                            conversionRate: { value: 500, label: 'Average Deal Value ($)' },
+                            agentRetention: { value: 10000, label: 'Agent Replacement Cost ($)' },
+                            complianceRate: { value: 2000, label: 'Cost per Compliance Violation ($)' }
+                        },
+                        savedDate: new Date().toISOString()
                     }
                 };
             });
@@ -1556,6 +1709,51 @@
                 return ['Cost Savings', 'Quality Improvement', 'Revenue Generation', 'Cost Avoidance', 'Risk Reduction'];
             };
             
+            // Helper function to get the appropriate volume label for a metric
+            const getVolumeLabel = (metric) => {
+                if (metric.includes('Deflection') || metric.includes('Automation') || 
+                    metric.includes('Self-Service') || metric.includes('AHT') || 
+                    metric.includes('Transfer') || metric.includes('FCR')) {
+                    return 'Contacts';
+                } else if (metric.includes('NPS')) {
+                    return 'Surveys';
+                } else if (metric.includes('CSAT')) {
+                    return 'CSAT Cases';
+                } else if (metric.includes('Agent Retention')) {
+                    return 'Agents';
+                } else if (metric.includes('Conversion Rate')) {
+                    return 'Opportunities';
+                } else if (metric.includes('Compliance')) {
+                    return 'Audits';
+                } else {
+                    return 'Volume';
+                }
+            };
+            
+            // Helper function to get effective metric value (with hierarchy: Special Group > Category > Global)
+            const getEffectiveMetricValue = (metricKey, useCase) => {
+                // First check if special group has an override
+                if (useCase.specialGroup && categoryCosts[useCase.category]) {
+                    const categoryData = categoryCosts[useCase.category];
+                    const channelData = categoryData[useCase.channel];
+                    if (channelData && channelData._specialGroups && channelData._specialGroups[useCase.specialGroup]) {
+                        const specialGroupData = channelData._specialGroups[useCase.specialGroup];
+                        if (specialGroupData.metricValues && specialGroupData.metricValues[metricKey]) {
+                            return specialGroupData.metricValues[metricKey].value;
+                        }
+                    }
+                }
+                
+                // Then check if category has an override
+                if (categoryCosts[useCase.category] && categoryCosts[useCase.category].metricValues && 
+                    categoryCosts[useCase.category].metricValues[metricKey]) {
+                    return categoryCosts[useCase.category].metricValues[metricKey].value;
+                }
+                
+                // Finally use global default
+                return metricValues[metricKey]?.value || 0;
+            };
+            
             // Migration function to convert old category structure to new category-channel structure
             const migrateCategoryCosts = () => {
                 const newCategoryCosts = {};
@@ -1648,8 +1846,14 @@
 
             // Calculate savings for a single benefit
             const calculateBenefitSavings = (useCase, benefit, monthData, benefitIndex = 0) => {
-                const volume = parseFloat(monthData.volume) || 0;
                 const normalizedUC = ensureUseCaseHasBenefits(useCase);
+                
+                // Get benefit-specific volume or fall back to general volume
+                const volumeFieldKey = normalizedUC.benefits.length === 1 
+                    ? `volume_${benefit.metric}`
+                    : `volume_${benefitIndex}_${benefit.metric}`;
+                const volume = parseFloat(monthData[volumeFieldKey] || monthData.volume) || 0;
+                
                 const fieldKey = normalizedUC.benefits.length === 1 
                     ? `improvement_${benefit.metric}`
                     : `improvement_${benefitIndex}_${benefit.metric}`;
@@ -1676,13 +1880,13 @@
                     return volume * (pct / 100) * effectiveCost;
                     
                 } else if (benefit.metric.includes('NPS Improvement')) {
-                    // Value-based calculation
-                    const valuePerPoint = metricValues.npsImprovement?.value || 50;
+                    // Value-based calculation with hierarchy
+                    const valuePerPoint = getEffectiveMetricValue('npsImprovement', useCase);
                     return volume * netImprovement * valuePerPoint;
                     
                 } else if (benefit.metric.includes('CSAT Improvement')) {
-                    // Value-based calculation  
-                    const valuePerPoint = metricValues.csatImprovement?.value || 25;
+                    // Value-based calculation with hierarchy
+                    const valuePerPoint = getEffectiveMetricValue('csatImprovement', useCase);
                     const pct = Math.max(0, Math.min(100, netImprovement));
                     return volume * (pct / 100) * valuePerPoint;
                     
@@ -1697,20 +1901,20 @@
                     return volume * (pct / 100) * effectiveCost;
                     
                 } else if (benefit.metric.includes('Conversion Rate')) {
-                    // Value-based calculation
-                    const avgDealValue = metricValues.conversionRate?.value || 200;
+                    // Value-based calculation with hierarchy
+                    const avgDealValue = getEffectiveMetricValue('conversionRate', useCase);
                     const pct = Math.max(0, Math.min(100, netImprovement));
                     return volume * (pct / 100) * avgDealValue;
                     
                 } else if (benefit.metric.includes('Agent Retention')) {
-                    // Value-based calculation
-                    const replacementCost = metricValues.agentRetention?.value || 5000;
+                    // Value-based calculation with hierarchy
+                    const replacementCost = getEffectiveMetricValue('agentRetention', useCase);
                     const pct = Math.max(0, Math.min(100, netImprovement));
                     return volume * (pct / 100) * replacementCost;
                     
                 } else if (benefit.metric.includes('Compliance Rate')) {
-                    // Value-based calculation
-                    const violationCost = metricValues.complianceRate?.value || 1000;
+                    // Value-based calculation with hierarchy
+                    const violationCost = getEffectiveMetricValue('complianceRate', useCase);
                     const pct = Math.max(0, Math.min(100, netImprovement));
                     return volume * (pct / 100) * violationCost;
                 }
@@ -3035,8 +3239,9 @@
                 
                 // Determine which field was focused by checking the active element
                 const activeElement = document.activeElement;
-                const isVolumeField = activeElement && activeElement.placeholder === 'Volume';
-                const benefitFieldMatch = activeElement && activeElement.placeholder && activeElement.placeholder.match(/Improvement|Baseline/);
+                const fieldKey = activeElement?.getAttribute('data-field-key');
+                const isVolumeField = fieldKey && fieldKey.startsWith('volume');
+                const isImprovementField = fieldKey && fieldKey.startsWith('improvement');
                 
                 // Check if this is a single cell paste (no tabs or newlines)
                 const isSingleCell = rows.length === 1 && !rows[0].includes('\t');
@@ -3050,14 +3255,9 @@
                         updatedUseCases[startUseCaseIndex].data[monthId] = {};
                     }
                     
-                    if (isVolumeField) {
-                        updatedUseCases[startUseCaseIndex].data[monthId].volume = value;
-                    } else if (benefitFieldMatch) {
-                        // Try to determine which benefit field from the placeholder or data attributes
-                        const fieldKey = activeElement.getAttribute('data-field-key');
-                        if (fieldKey) {
-                            updatedUseCases[startUseCaseIndex].data[monthId][fieldKey] = value;
-                        }
+                    // Use the field key from the active element
+                    if (fieldKey) {
+                        updatedUseCases[startUseCaseIndex].data[monthId][fieldKey] = value;
                     }
                 } else {
                     // Multi-cell paste
@@ -3233,15 +3433,17 @@
                             calculationFormula = 'Volume × (Minutes_Saved - Baseline) × Cost_per_Minute';
                             costType = 'Time-based';
                         } else if (benefit.metric.includes('NPS Improvement')) {
-                            effectiveCost = metricValues.npsImprovement?.value || 50;
-                            costSource = 'Quality Metric Value';
+                            effectiveCost = getEffectiveMetricValue('npsImprovement', uc);
+                            const categoryOverride = categoryCosts[uc.category]?.metricValues?.npsImprovement;
+                            costSource = categoryOverride ? `Category Override (${uc.category})` : 'Global Metric Value';
                             costType = 'Value per Point';
                             valueDriverType = 'Quality Improvement';
                             unit = 'points';
                             calculationFormula = 'Volume × NPS_Points_Improved × Value_per_NPS_Point';
                         } else if (benefit.metric.includes('CSAT Improvement')) {
-                            effectiveCost = metricValues.csatImprovement?.value || 25;
-                            costSource = 'Quality Metric Value';
+                            effectiveCost = getEffectiveMetricValue('csatImprovement', uc);
+                            const categoryOverride = categoryCosts[uc.category]?.metricValues?.csatImprovement;
+                            costSource = categoryOverride ? `Category Override (${uc.category})` : 'Global Metric Value';
                             costType = 'Value per Point';
                             valueDriverType = 'Quality Improvement';
                             unit = '%';
@@ -3254,22 +3456,25 @@
                             unit = '%';
                             calculationFormula = 'Volume × (FCR_% - Baseline%) × Cost_per_Contact';
                         } else if (benefit.metric.includes('Conversion Rate')) {
-                            effectiveCost = metricValues.conversionRate?.value || 200;
-                            costSource = 'Quality Metric Value';
+                            effectiveCost = getEffectiveMetricValue('conversionRate', uc);
+                            const categoryOverride = categoryCosts[uc.category]?.metricValues?.conversionRate;
+                            costSource = categoryOverride ? `Category Override (${uc.category})` : 'Global Metric Value';
                             costType = 'Average Deal Value';
                             valueDriverType = 'Revenue Generation';
                             unit = '%';
                             calculationFormula = 'Volume × (Conversion_% - Baseline%) × Average_Deal_Value';
                         } else if (benefit.metric.includes('Agent Retention')) {
-                            effectiveCost = metricValues.agentRetention?.value || 5000;
-                            costSource = 'Quality Metric Value';
+                            effectiveCost = getEffectiveMetricValue('agentRetention', uc);
+                            const categoryOverride = categoryCosts[uc.category]?.metricValues?.agentRetention;
+                            costSource = categoryOverride ? `Category Override (${uc.category})` : 'Global Metric Value';
                             costType = 'Replacement Cost';
                             valueDriverType = 'Cost Avoidance';
                             unit = '%';
                             calculationFormula = 'Volume × (Retention_% - Baseline%) × Agent_Replacement_Cost';
                         } else if (benefit.metric.includes('Compliance Rate')) {
-                            effectiveCost = metricValues.complianceRate?.value || 1000;
-                            costSource = 'Quality Metric Value';
+                            effectiveCost = getEffectiveMetricValue('complianceRate', uc);
+                            const categoryOverride = categoryCosts[uc.category]?.metricValues?.complianceRate;
+                            costSource = categoryOverride ? `Category Override (${uc.category})` : 'Global Metric Value';
                             costType = 'Violation Cost';
                             valueDriverType = 'Risk Reduction';
                             unit = '%';
@@ -3298,7 +3503,7 @@
                 
                 // SECTION 2: MULTI-BENEFIT INPUT PARAMETERS
                 csv += '\n\n=== SECTION 2: ALL MULTI-BENEFIT INPUT PARAMETERS ===\n';
-                csv += 'Use Case,Month,Benefit Number,Metric,Unit,Volume (contacts),Improvement Input,Baseline,Net Improvement Used\n';
+                csv += 'Use Case,Month,Benefit Number,Metric,Unit,Volume Type,Volume Count,Improvement Input,Baseline,Net Improvement Used\n';
                 
                 useCases.forEach(uc => {
                     const normalizedUC = ensureUseCaseHasBenefits(uc);
@@ -3309,10 +3514,17 @@
                         
                         months.forEach(month => {
                             const monthData = uc.data[month.id] || {};
-                            const fieldKey = `improvement_${benefit.metric}`;
-                            const improvement = monthData[fieldKey] || 0;
+                            const improvementFieldKey = normalizedUC.benefits.length === 1 
+                                ? `improvement_${benefit.metric}`
+                                : `improvement_${benefitIndex}_${benefit.metric}`;
+                            const volumeFieldKey = normalizedUC.benefits.length === 1 
+                                ? `volume_${benefit.metric}`
+                                : `volume_${benefitIndex}_${benefit.metric}`;
+                            const volumeLabel = getVolumeLabel(benefit.metric);
+                            const volume = monthData[volumeFieldKey] || monthData.volume || 0; // Fallback to general volume
+                            const improvement = monthData[improvementFieldKey] || 0;
                             const netImprovement = Math.max(0, improvement - benefit.baselineValue);
-                            csv += `"${uc.name}",${month.month} ${month.year},${benefitIndex + 1},"${benefit.metric}",${unit},${monthData.volume || 0},${improvement},${benefit.baselineValue},${netImprovement}\n`;
+                            csv += `"${uc.name}",${month.month} ${month.year},${benefitIndex + 1},"${benefit.metric}",${unit},"${volumeLabel}",${volume},${improvement},${benefit.baselineValue},${netImprovement}\n`;
                         });
                     });
                 });
@@ -5227,6 +5439,60 @@
                                     </div>
                                 </div>
                                 
+                                {/* Category-Specific Metric Values */}
+                                <div className="settings-section">
+                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                                        <Icons.Chart /> Category-Specific Metric Values
+                                    </h3>
+                                    <div className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded">
+                                        <strong>💡 Override Metric Values by Category:</strong> Set different NPS values, agent retention costs, etc. for each category.
+                                        Leave blank to use global defaults.
+                                    </div>
+                                    
+                                    {categories.length === 0 ? (
+                                        <div className="text-gray-500 italic">No categories defined. Add categories above to configure metric values.</div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {categories.map(category => (
+                                                <div key={category} className="border rounded-lg p-4">
+                                                    <h4 className="font-medium mb-3 text-blue-700">{category}</h4>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {Object.entries(metricValues).map(([key, config]) => {
+                                                            const categoryMetricValue = categoryCosts[category]?.metricValues?.[key];
+                                                            return (
+                                                                <div key={key} className="flex items-center gap-2">
+                                                                    <label className="text-sm flex-1">{config.label}:</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder={`Default: $${config.value}`}
+                                                                        value={categoryMetricValue?.value || ''}
+                                                                        onChange={(e) => {
+                                                                            const newValue = e.target.value ? parseFloat(e.target.value) : null;
+                                                                            setCategoryCosts(prev => ({
+                                                                                ...prev,
+                                                                                [category]: {
+                                                                                    ...prev[category],
+                                                                                    metricValues: {
+                                                                                        ...(prev[category]?.metricValues || {}),
+                                                                                        [key]: newValue ? { ...config, value: newValue } : undefined
+                                                                                    }
+                                                                                }
+                                                                            }));
+                                                                        }}
+                                                                        className="settings-input w-28"
+                                                                        step="0.01"
+                                                                        min="0"
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                
                                 {/* Category-Channel Cost Matrix */}
                                 <div className="settings-section">
                                     <div className="flex items-center justify-between mb-4">
@@ -5615,75 +5881,209 @@
                                                     });
                                                     
                                                     const handleApplyAll = () => {
-                                                        const operations = [];
-                                                        
-                                                        // Add volume operations
-                                                        const volumeInput = document.getElementById('filldown-volume');
-                                                        if (volumeInput && volumeInput.value) {
-                                                            Array.from(selectedUseCases).forEach(ucId => {
-                                                                operations.push({
-                                                                    useCaseId: ucId,
-                                                                    field: 'volume',
-                                                                    value: volumeInput.value
-                                                                });
-                                                            });
-                                                        }
-                                                        
-                                                        // Add benefit operations
-                                                        allBenefits.forEach((instances, metric) => {
-                                                            const input = document.getElementById(`filldown-${metric}`);
-                                                            if (input && input.value) {
-                                                                instances.forEach(({ucId, fieldKey}) => {
-                                                                    operations.push({
-                                                                        useCaseId: ucId,
-                                                                        field: fieldKey,
-                                                                        value: input.value
+                                                        if (fillMode === 'constant') {
+                                                            // Original constant value logic
+                                                            const operations = [];
+                                                            
+                                                            allBenefits.forEach((instances, metric) => {
+                                                                const volumeInput = document.getElementById(`filldown-volume-${metric}`);
+                                                                if (volumeInput && volumeInput.value) {
+                                                                    instances.forEach(({ucId, benefitIndex}) => {
+                                                                        const uc = useCases.find(u => u.id === ucId);
+                                                                        if (uc) {
+                                                                            const normalizedUC = ensureUseCaseHasBenefits(uc);
+                                                                            const volumeFieldKey = normalizedUC.benefits.length === 1 
+                                                                                ? `volume_${metric}`
+                                                                                : `volume_${benefitIndex}_${metric}`;
+                                                                            operations.push({
+                                                                                useCaseId: ucId,
+                                                                                field: volumeFieldKey,
+                                                                                value: volumeInput.value
+                                                                            });
+                                                                        }
                                                                     });
-                                                                });
-                                                            }
-                                                        });
-                                                        
-                                                        if (operations.length > 0) {
-                                                            batchFillDown(operations);
-                                                            // Clear all inputs
-                                                            document.querySelectorAll('[id^="filldown-"]').forEach(input => {
-                                                                input.value = '';
+                                                                }
+                                                                
+                                                                const improvementInput = document.getElementById(`filldown-${metric}`);
+                                                                if (improvementInput && improvementInput.value) {
+                                                                    instances.forEach(({ucId, fieldKey}) => {
+                                                                        operations.push({
+                                                                            useCaseId: ucId,
+                                                                            field: fieldKey,
+                                                                            value: improvementInput.value
+                                                                        });
+                                                                    });
+                                                                }
                                                             });
+                                                            
+                                                            if (operations.length > 0) {
+                                                                batchFillDown(operations);
+                                                            }
+                                                        } else {
+                                                            // Gradual increase logic
+                                                            const updatedUseCases = [...useCases];
+                                                            const totalMonths = months.length;
+                                                            
+                                                            allBenefits.forEach((instances, metric) => {
+                                                                // Get start and end values for volumes
+                                                                const volumeStartInput = document.getElementById(`filldown-volume-start-${metric}`);
+                                                                const volumeEndInput = document.getElementById(`filldown-volume-end-${metric}`);
+                                                                const hasVolumeGradual = volumeStartInput?.value && volumeEndInput?.value;
+                                                                
+                                                                // Get start and end values for improvements
+                                                                const improvementStartInput = document.getElementById(`filldown-start-${metric}`);
+                                                                const improvementEndInput = document.getElementById(`filldown-end-${metric}`);
+                                                                const hasImprovementGradual = improvementStartInput?.value && improvementEndInput?.value;
+                                                                
+                                                                if (hasVolumeGradual || hasImprovementGradual) {
+                                                                    instances.forEach(({ucId, benefitIndex, fieldKey}) => {
+                                                                        const ucIndex = updatedUseCases.findIndex(u => u.id === ucId);
+                                                                        if (ucIndex >= 0) {
+                                                                            const uc = updatedUseCases[ucIndex];
+                                                                            const normalizedUC = ensureUseCaseHasBenefits(uc);
+                                                                            const volumeFieldKey = normalizedUC.benefits.length === 1 
+                                                                                ? `volume_${metric}`
+                                                                                : `volume_${benefitIndex}_${metric}`;
+                                                                            
+                                                                            months.forEach((month, monthIndex) => {
+                                                                                if (!updatedUseCases[ucIndex].data[month.id]) {
+                                                                                    updatedUseCases[ucIndex].data[month.id] = {};
+                                                                                }
+                                                                                
+                                                                                // Calculate interpolated values
+                                                                                const progress = totalMonths > 1 ? monthIndex / (totalMonths - 1) : 0;
+                                                                                
+                                                                                if (hasVolumeGradual) {
+                                                                                    const startVal = parseFloat(volumeStartInput.value);
+                                                                                    const endVal = parseFloat(volumeEndInput.value);
+                                                                                    const interpolatedVolume = Math.round(startVal + (endVal - startVal) * progress);
+                                                                                    updatedUseCases[ucIndex].data[month.id][volumeFieldKey] = interpolatedVolume;
+                                                                                }
+                                                                                
+                                                                                if (hasImprovementGradual) {
+                                                                                    const startVal = parseFloat(improvementStartInput.value);
+                                                                                    const endVal = parseFloat(improvementEndInput.value);
+                                                                                    const interpolatedImprovement = startVal + (endVal - startVal) * progress;
+                                                                                    updatedUseCases[ucIndex].data[month.id][fieldKey] = 
+                                                                                        metric.includes('min') ? interpolatedImprovement.toFixed(1) : Math.round(interpolatedImprovement);
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                    });
+                                                                }
+                                                            });
+                                                            
+                                                            setUndoStack(prev => [...prev.slice(-49), useCases]);
+                                                            setRedoStack([]);
+                                                            setUseCases(updatedUseCases);
                                                         }
+                                                        
+                                                        // Clear all inputs
+                                                        document.querySelectorAll('[id^="filldown-"]').forEach(input => {
+                                                            input.value = '';
+                                                        });
                                                     };
                                                     
                                                     return (
                                                         <div className="mt-4 p-3 bg-blue-50 rounded">
                                                             <h5 className="font-medium text-sm mb-2">Fill Down</h5>
+                                                            <p className="text-[10px] text-gray-600 mb-2">Enter values to apply to all selected use cases across all months</p>
                                                             
-                                                            {/* Volume Input */}
-                                                            <div className="mb-2">
-                                                                <label className="block text-[10px] text-gray-600 mb-1">
-                                                                    Volume (all selected)
-                                                                </label>
-                                                                <input
-                                                                    id="filldown-volume"
-                                                                    type="number"
-                                                                    placeholder="Enter volume"
-                                                                    className="w-full px-2 py-1 text-xs border rounded"
-                                                                />
+                                                            {/* Mode Toggle */}
+                                                            <div className="mb-3 flex gap-2">
+                                                                <button
+                                                                    onClick={() => setFillMode('constant')}
+                                                                    className={`flex-1 px-2 py-1 text-xs rounded ${fillMode === 'constant' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+                                                                >
+                                                                    Constant Value
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setFillMode('gradual')}
+                                                                    className={`flex-1 px-2 py-1 text-xs rounded ${fillMode === 'gradual' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+                                                                >
+                                                                    Gradual Increase
+                                                                </button>
                                                             </div>
                                                             
-                                                            {/* Benefit Inputs */}
-                                                            {Array.from(allBenefits.entries()).map(([metric, instances]) => (
-                                                                <div key={metric} className="mb-2">
-                                                                    <label className="block text-[10px] text-gray-600 mb-1">
-                                                                        {metric} ({instances.length} instance{instances.length > 1 ? 's' : ''})
-                                                                    </label>
-                                                                    <input
-                                                                        id={`filldown-${metric}`}
-                                                                        type="number"
-                                                                        placeholder={metric.includes('min') ? 'Minutes' : metric.includes('points') ? 'Points' : '%'}
-                                                                        className="w-full px-2 py-1 text-xs border rounded"
-                                                                        title={`Apply to: ${instances.map(i => i.ucName).join(', ')}`}
-                                                                    />
-                                                                </div>
-                                                            ))}
+                                                            {/* Benefit-specific Volume and Improvement Inputs */}
+                                                            {Array.from(allBenefits.entries()).map(([metric, instances]) => {
+                                                                const volumeLabel = getVolumeLabel(metric);
+                                                                return (
+                                                                    <div key={metric} className="mb-3 p-2 bg-white rounded border border-gray-200">
+                                                                        <div className="text-[11px] font-semibold text-blue-700 mb-2">
+                                                                            {metric} ({instances.length} instance{instances.length > 1 ? 's' : ''})
+                                                                        </div>
+                                                                        
+                                                                        {/* Volume Input for this metric */}
+                                                                        <div className="mb-2">
+                                                                            <label className="block text-[10px] text-gray-600 mb-1">
+                                                                                {volumeLabel} (Volume) {fillMode === 'gradual' && '- Start → End'}
+                                                                            </label>
+                                                                            {fillMode === 'constant' ? (
+                                                                                <input
+                                                                                    id={`filldown-volume-${metric}`}
+                                                                                    type="number"
+                                                                                    placeholder={`Number of ${volumeLabel.toLowerCase()}`}
+                                                                                    className="w-full px-2 py-1 text-xs border rounded"
+                                                                                    title={`Volume of ${volumeLabel} for ${metric}`}
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="flex gap-1">
+                                                                                    <input
+                                                                                        id={`filldown-volume-start-${metric}`}
+                                                                                        type="number"
+                                                                                        placeholder="Start"
+                                                                                        className="flex-1 px-1 py-1 text-xs border rounded"
+                                                                                        title={`Starting volume for ${metric}`}
+                                                                                    />
+                                                                                    <span className="text-xs self-center">→</span>
+                                                                                    <input
+                                                                                        id={`filldown-volume-end-${metric}`}
+                                                                                        type="number"
+                                                                                        placeholder="End"
+                                                                                        className="flex-1 px-1 py-1 text-xs border rounded"
+                                                                                        title={`Ending volume for ${metric}`}
+                                                                                    />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        
+                                                                        {/* Improvement Input for this metric */}
+                                                                        <div>
+                                                                            <label className="block text-[10px] text-gray-600 mb-1">
+                                                                                Improvement Value {fillMode === 'gradual' && '- Start → End'}
+                                                                            </label>
+                                                                            {fillMode === 'constant' ? (
+                                                                                <input
+                                                                                    id={`filldown-${metric}`}
+                                                                                    type="number"
+                                                                                    placeholder={metric.includes('min') ? 'Minutes' : metric.includes('points') ? 'Points' : 'Percentage'}
+                                                                                    className="w-full px-2 py-1 text-xs border rounded"
+                                                                                    title={`Apply to: ${instances.map(i => i.ucName).join(', ')}`}
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="flex gap-1">
+                                                                                    <input
+                                                                                        id={`filldown-start-${metric}`}
+                                                                                        type="number"
+                                                                                        placeholder="Start"
+                                                                                        className="flex-1 px-1 py-1 text-xs border rounded"
+                                                                                        title={`Starting improvement for ${metric}`}
+                                                                                    />
+                                                                                    <span className="text-xs self-center">→</span>
+                                                                                    <input
+                                                                                        id={`filldown-end-${metric}`}
+                                                                                        type="number"
+                                                                                        placeholder="End"
+                                                                                        className="flex-1 px-1 py-1 text-xs border rounded"
+                                                                                        title={`Ending improvement for ${metric}`}
+                                                                                    />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
                                                             
                                                             {/* Apply Button */}
                                                             <button
@@ -5986,105 +6386,82 @@
                                                                         onPaste={(e) => bulkEditMode && handlePaste(e, index, months.findIndex(m => m.id === month.id))}
                                                                     >
                                                                         <div className="space-y-2">
-                                                                            {/* Volume Input */}
-                                                                            <div className="relative">
-                                                                                <label className="absolute -top-2 left-1 text-[9px] text-gray-500 bg-white px-1">Volume</label>
-                                                                                <input
-                                                                                    type="number"
-                                                                                    placeholder="Volume"
-                                                                                    value={monthData.volume || ''}
-                                                                                    data-field-key="volume"
-                                                                                    onPaste={(e) => bulkEditMode && handlePaste(e, index, months.findIndex(m => m.id === month.id))}
-                                                                                    onChange={(e) => updateUseCaseData(useCase.id, month.id, 'volume', e.target.value)}
-                                                                                    onBlur={() => {
-                                                                                        // Auto-save visual feedback is handled in updateUseCaseData
-                                                                                    }}
-                                                                                    onKeyDown={(e) => {
-                                                                                        if (e.key === 'Enter') {
-                                                                                            e.preventDefault();
-                                                                                            // Move to next input or cell
-                                                                                            const nextInput = e.target.parentElement.parentElement.querySelector('input[type="number"]:not(:first-child)') || 
-                                                                                                               e.target.closest('td').nextElementSibling?.querySelector('input[type="number"]');
-                                                                                            if (nextInput) nextInput.focus();
-                                                                                        } else if (e.key === 'Tab') {
-                                                                                            // Default tab behavior for navigation
-                                                                                        } else if (e.key === 'Escape') {
-                                                                                            e.target.blur();
-                                                                                        }
-                                                                                    }}
-                                                                                    className={`w-full px-2 py-1 text-xs border-2 rounded transition-all duration-200 ${
-                                                                                        unsavedChanges.has(`${useCase.id}-${month.id}-volume`) ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
-                                                                                    } hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
-                                                                                    title={`Volume for ${month.month} ${month.year}. Press Enter to move to next field, Tab to navigate, Escape to finish editing.`}
-                                                                                />
-                                                                            </div>
-                                                                            
-                                                                            {/* Separator */}
-                                                                            {normalizedUseCase.benefits.length > 0 && (
-                                                                                <div className="border-t border-gray-200 my-1"></div>
+                                                                            {/* Benefit-specific Volume and Improvement Inputs */}
+                                                                            {normalizedUseCase.benefits.length === 0 ? (
+                                                                                <div className="text-xs text-gray-400 italic p-2">
+                                                                                    No benefits defined
+                                                                                </div>
+                                                                            ) : (
+                                                                                normalizedUseCase.benefits.map((benefit, benefitIndex) => {
+                                                                                    const volumeFieldKey = normalizedUseCase.benefits.length === 1 
+                                                                                        ? `volume_${benefit.metric}`
+                                                                                        : `volume_${benefitIndex}_${benefit.metric}`;
+                                                                                    const improvementFieldKey = normalizedUseCase.benefits.length === 1 
+                                                                                        ? `improvement_${benefit.metric}`
+                                                                                        : `improvement_${benefitIndex}_${benefit.metric}`;
+                                                                                    const volumeLabel = getVolumeLabel(benefit.metric);
+                                                                                    
+                                                                                    return (
+                                                                                        <div key={`${benefit.metric}-${benefitIndex}`} className="p-2 bg-gray-50 rounded-md border border-gray-200">
+                                                                                            <div className="text-[10px] font-semibold text-blue-600 mb-1">
+                                                                                                {benefit.metric}
+                                                                                            </div>
+                                                                                            <div className="space-y-1">
+                                                                                                {/* Volume Input for this benefit */}
+                                                                                                <div className="flex gap-1 items-center">
+                                                                                                    <label className="text-[9px] text-gray-600 min-w-[45px]">{volumeLabel}:</label>
+                                                                                                    <input
+                                                                                                        type="number"
+                                                                                                        placeholder="0"
+                                                                                                        value={monthData[volumeFieldKey] || ''}
+                                                                                                        data-field-key={volumeFieldKey}
+                                                                                                        onChange={(e) => updateUseCaseData(useCase.id, month.id, volumeFieldKey, e.target.value)}
+                                                                                                        className={`flex-1 px-1 py-0.5 text-xs border rounded ${
+                                                                                                            unsavedChanges.has(`${useCase.id}-${month.id}-${volumeFieldKey}`) ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'
+                                                                                                        }`}
+                                                                                                        title={`Number of ${volumeLabel} for ${benefit.metric}`}
+                                                                                                    />
+                                                                                                </div>
+                                                                                                {/* Improvement Input for this benefit */}
+                                                                                                <div className="flex gap-1 items-center">
+                                                                                                    <label className="text-[9px] text-gray-600 min-w-[45px]">Impact:</label>
+                                                                                                    <input
+                                                                                                        type="number"
+                                                                                                        placeholder={benefit.metric.includes('min') ? '0 min' : benefit.metric.includes('points') ? '0 pts' : '0%'}
+                                                                                                        value={monthData[improvementFieldKey] || ''}
+                                                                                                        data-field-key={improvementFieldKey}
+                                                                                                        onChange={(e) => updateUseCaseData(useCase.id, month.id, improvementFieldKey, e.target.value)}
+                                                                                                        className={`flex-1 px-1 py-0.5 text-xs border rounded ${
+                                                                                                            unsavedChanges.has(`${useCase.id}-${month.id}-${improvementFieldKey}`) ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'
+                                                                                                        }`}
+                                                                                                        title={`Improvement value for ${benefit.metric}`}
+                                                                                                    />
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    );
+                                                                                })
                                                                             )}
-                                                                            
-                                                                            {/* Improvement Inputs */}
-                                                                            {normalizedUseCase.benefits.map((benefit, benefitIndex) => {
-                                                                                const fieldKey = normalizedUseCase.benefits.length === 1 
-                                                                                    ? `improvement_${benefit.metric}`
-                                                                                    : `improvement_${benefitIndex}_${benefit.metric}`;
-                                                                                return (
-                                                                                    <div key={`${useCase.id}-${month.id}-${benefit.metric}-${benefitIndex}`} className="relative">
-                                                                                        <label className="absolute -top-2 left-1 text-[9px] text-blue-600 bg-white px-1 truncate max-w-[90%]">
-                                                                                            {benefit.metric.replace(' (%)', '').replace(' (minutes)', '').replace(' (points)', '')}
-                                                                                        </label>
-                                                                                        <input
-                                                                                            type="number"
-                                                                                            placeholder={benefit.metric.includes('min') ? 'Minutes' : benefit.metric.includes('points') ? 'Points' : '%'}
-                                                                                            value={monthData[fieldKey] || ''}
-                                                                                            data-field-key={fieldKey}
-                                                                                            onPaste={(e) => bulkEditMode && handlePaste(e, index, months.findIndex(m => m.id === month.id))}
-                                                                                            onChange={(e) => updateUseCaseData(useCase.id, month.id, fieldKey, e.target.value)}
-                                                                                            onBlur={() => {
-                                                                                                // Auto-save visual feedback is handled in updateUseCaseData
-                                                                                            }}
-                                                                                            onKeyDown={(e) => {
-                                                                                                if (e.key === 'Enter') {
-                                                                                                    e.preventDefault();
-                                                                                                    // Move to next benefit input or next cell
-                                                                                                    const allInputs = Array.from(e.target.closest('td').querySelectorAll('input[type="number"]'));
-                                                                                                    const currentIndex = allInputs.indexOf(e.target);
-                                                                                                    const nextInput = allInputs[currentIndex + 1] || 
-                                                                                                                     e.target.closest('td').nextElementSibling?.querySelector('input[type="number"]');
-                                                                                                    if (nextInput) nextInput.focus();
-                                                                                                } else if (e.key === 'Escape') {
-                                                                                                    e.target.blur();
-                                                                                                }
-                                                                                            }}
-                                                                                            className={`w-full px-2 py-1 text-xs border rounded transition-all duration-200 ${
-                                                                                                unsavedChanges.has(`${useCase.id}-${month.id}-${fieldKey}`) ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
-                                                                                            } hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500`}
-                                                                                            title={`${benefit.metric} for ${month.month} ${month.year}. Press Enter to move to next field, Escape to finish editing.`}
-                                                                                        />
-                                                                                    </div>
-                                                                                );
-                                                                            })}
                                                                             
                                                                             {/* Savings Display */}
                                                                             <div className="text-xs font-bold text-green-600">
                                                                                 ${Math.round(savings).toLocaleString()}
                                                                             </div>
                                                                             
-                                                                            {/* Quick Action Buttons (visible on hover in bulk mode) */}
+                                                                            {/* Quick Action Buttons - Always visible in bulk mode */}
                                                                             {bulkEditMode && (
-                                                                                <div className="absolute top-1 right-1 opacity-0 hover:opacity-100 transition-opacity duration-200 bg-white rounded shadow-sm border flex">
+                                                                                <div className="mt-2 pt-2 border-t border-gray-200 flex gap-1 justify-center">
                                                                                     <button
                                                                                         onClick={() => applyToAllMonths(useCase.id, month.id)}
-                                                                                        className="px-1 py-0.5 text-xs text-blue-600 hover:bg-blue-50 rounded-l"
-                                                                                        title="Apply this month's data to all months"
+                                                                                        className="px-2 py-1 text-xs bg-blue-500 text-white hover:bg-blue-600 rounded"
+                                                                                        title={`Copy all ${normalizedUseCase.benefits.length} benefit${normalizedUseCase.benefits.length > 1 ? 's' : ''} data (volumes & improvements) from ${month.month} to all other months`}
                                                                                     >
-                                                                                        →All
+                                                                                        Fill→
                                                                                     </button>
                                                                                     <button
                                                                                         onClick={() => copyPreviousMonth(useCase.id, month.id)}
-                                                                                        className="px-1 py-0.5 text-xs text-gray-600 hover:bg-gray-50 rounded-r border-l"
-                                                                                        title="Copy previous month's data"
+                                                                                        className="px-2 py-1 text-xs bg-gray-500 text-white hover:bg-gray-600 rounded"
+                                                                                        title={`Copy all benefit data from previous month to ${month.month}`}
                                                                                         disabled={months.findIndex(m => m.id === month.id) === 0}
                                                                                     >
                                                                                         ←Copy
