@@ -1542,23 +1542,24 @@
 
             // Calculate cost based on category-channel hierarchy and special group
             const getEffectiveCost = (useCase, channel) => {
-                // Priority: Category-Channel-SpecialGroup > Category-Channel > Channel Default
-                
-                // Get category data
+                // Priority: Category-Channel-SpecialGroup > Category-Channel (_default) > Category Default > Channel Default
                 if (categoryCosts[useCase.category]) {
                     const categoryData = categoryCosts[useCase.category];
-                    
-                    // 1. Check for special group within category-channel (highest priority)
-                    if (useCase.specialGroup && categoryData[channel] && categoryData[channel]._specialGroups && categoryData[channel]._specialGroups[useCase.specialGroup]) {
+
+                    // 1) Category-Channel Special Group (highest)
+                    if (
+                        useCase.specialGroup &&
+                        categoryData[channel] &&
+                        categoryData[channel]._specialGroups &&
+                        categoryData[channel]._specialGroups[useCase.specialGroup]
+                    ) {
                         const specialGroupCost = categoryData[channel]._specialGroups[useCase.specialGroup];
                         if (specialGroupCost.costType === 'perContact') {
                             return specialGroupCost.value;
                         }
-                        // For hourly, convert to per-contact using special group AHT
-                        // Use the special group's AHT if it exists and is valid, otherwise fall back to defaults
+                        // Hourly → per-contact using AHT and utilization
                         let aht = specialGroupCost.ahtMinutes;
                         if (!aht || aht <= 0) {
-                            // Fall back to channel AHT, then category AHT, then global default
                             const channelData = categoryData[channel];
                             if (channelData && channelData._default && channelData._default.ahtMinutes > 0) {
                                 aht = channelData._default.ahtMinutes;
@@ -1568,33 +1569,46 @@
                                 aht = defaultAHT;
                             }
                         }
-                        // Adjust for agent utilization (e.g., if 75% utilized, true cost is higher)
                         const utilizationFactor = agentUtilization > 0 ? (100 / agentUtilization) : 1;
                         return specialGroupCost.value * aht / 60 * utilizationFactor;
                     }
-                    
-                    // 2. Category-Channel specific cost (no more category defaults)
-                    if (categoryData[channel] && typeof categoryData[channel] === 'object') {
-                        const channelSpecificCost = categoryData[channel];
-                        if (channelSpecificCost && channelSpecificCost.costType) {
-                            if (channelSpecificCost.costType === 'perContact') {
-                                return channelSpecificCost.value;
+
+                    // 2) Category-Channel default (object with _default or flat costType)
+                    const channelNode = categoryData[channel];
+                    if (channelNode && typeof channelNode === 'object') {
+                        const costCfg = channelNode._default || (channelNode.costType ? channelNode : null);
+                        if (costCfg && costCfg.costType) {
+                            if (costCfg.costType === 'perContact') {
+                                return costCfg.value || 0;
                             }
-                            // For hourly, convert to per-contact using channel-specific AHT
-                            const aht = channelSpecificCost.ahtMinutes || getApplicableAHT(useCase);
+                            const aht = (typeof costCfg.ahtMinutes === 'number' && costCfg.ahtMinutes > 0)
+                                ? costCfg.ahtMinutes
+                                : getApplicableAHT(useCase);
                             const utilizationFactor = agentUtilization > 0 ? (100 / agentUtilization) : 1;
-                            return channelSpecificCost.value * aht / 60 * utilizationFactor;
+                            return (costCfg.value * aht / 60) * utilizationFactor;
                         }
                     }
+
+                    // 3) Category Default (fallback before channel default)
+                    const catDefault = categoryData._default;
+                    if (catDefault && catDefault.costType) {
+                        if (catDefault.costType === 'perContact') {
+                            return catDefault.value || 0;
+                        }
+                        const aht = (typeof catDefault.ahtMinutes === 'number' && catDefault.ahtMinutes > 0)
+                            ? catDefault.ahtMinutes
+                            : defaultAHT || 10;
+                        const utilizationFactor = agentUtilization > 0 ? (100 / agentUtilization) : 1;
+                        return (catDefault.value * aht / 60) * utilizationFactor;
+                    }
                 }
-                
-                // 3. Channel default (lowest priority)
+
+                // 4) Channel default (lowest)
                 const channelDefault = channelCosts[channel];
                 if (channelDefault && typeof channelDefault === 'object') {
                     if (channelDefault.costType === 'perContact') {
                         return channelDefault.value || 0;
                     }
-                    // Convert hourly to per-contact using channel default AHT
                     const aht = channelDefault.ahtMinutes || defaultAHT || 10;
                     const utilizationFactor = agentUtilization > 0 ? (100 / agentUtilization) : 1;
                     return (channelDefault.value * aht / 60) * utilizationFactor;
@@ -1720,6 +1734,67 @@
                 return useCase;
             };
 
+            // Migrate monthly data keys when the benefit set (metric names/count) changes
+            // Preserves entered volumes/improvements by renaming keys to match the new benefit schema
+            const migrateUseCaseBenefitKeys = (oldUseCase, newUseCase) => {
+                const oldUC = ensureUseCaseHasBenefits(oldUseCase);
+                const newUC = ensureUseCaseHasBenefits(newUseCase);
+                const migrated = { ...newUC, data: { ...(oldUseCase.data || {}) } };
+                const monthsIds = Object.keys(oldUseCase.data || {});
+
+                const renameKey = (obj, fromKey, toKey) => {
+                    if (Object.prototype.hasOwnProperty.call(obj, fromKey)) {
+                        obj[toKey] = obj[fromKey];
+                        if (toKey !== fromKey) delete obj[fromKey];
+                    }
+                };
+
+                monthsIds.forEach((monthId) => {
+                    const md = { ...(migrated.data[monthId] || {}) };
+                    const oldB = oldUC.benefits || [];
+                    const newB = newUC.benefits || [];
+                    const singleOld = oldB.length === 1;
+                    const singleNew = newB.length === 1;
+
+                    if (singleOld && singleNew) {
+                        // volume_<oldMetric> -> volume_<newMetric>
+                        renameKey(md, `volume_${oldB[0].metric}`, `volume_${newB[0].metric}`);
+                        renameKey(md, `improvement_${oldB[0].metric}`, `improvement_${newB[0].metric}`);
+                    } else if (!singleOld && !singleNew) {
+                        const minLen = Math.min(oldB.length, newB.length);
+                        for (let i = 0; i < minLen; i++) {
+                            renameKey(md, `volume_${i}_${oldB[i].metric}`, `volume_${i}_${newB[i].metric}`);
+                            renameKey(md, `improvement_${i}_${oldB[i].metric}`, `improvement_${i}_${newB[i].metric}`);
+                        }
+                        // Remove any keys for old benefits beyond the new length
+                        for (let i = minLen; i < oldB.length; i++) {
+                            delete md[`volume_${i}_${oldB[i].metric}`];
+                            delete md[`improvement_${i}_${oldB[i].metric}`];
+                        }
+                    } else if (singleOld && !singleNew) {
+                        // Map single keys to index 0 of the new list
+                        if (newB[0]) {
+                            renameKey(md, `volume_${oldB[0].metric}`, `volume_0_${newB[0].metric}`);
+                            renameKey(md, `improvement_${oldB[0].metric}`, `improvement_0_${newB[0].metric}`);
+                        }
+                    } else if (!singleOld && singleNew) {
+                        // Map index 0 to the single keys; drop the rest
+                        if (oldB[0]) {
+                            renameKey(md, `volume_0_${oldB[0].metric}`, `volume_${newB[0].metric}`);
+                            renameKey(md, `improvement_0_${oldB[0].metric}`, `improvement_${newB[0].metric}`);
+                        }
+                        for (let i = 1; i < oldB.length; i++) {
+                            delete md[`volume_${i}_${oldB[i].metric}`];
+                            delete md[`improvement_${i}_${oldB[i].metric}`];
+                        }
+                    }
+
+                    migrated.data[monthId] = md;
+                });
+
+                return migrated;
+            };
+
             // Helper function to get all available metric types
             const getAvailableMetrics = () => {
                 return [
@@ -1836,6 +1911,40 @@
                 } else {
                     return 'Volume';
                 }
+            };
+
+            // Helper: return the volume used for a specific benefit in a given month
+            const getBenefitVolumeValue = (useCaseOrNormalized, monthData, benefit, benefitIndex = 0) => {
+                const normalizedUC = (useCaseOrNormalized && useCaseOrNormalized.benefits)
+                    ? useCaseOrNormalized
+                    : ensureUseCaseHasBenefits(useCaseOrNormalized);
+                const key = (normalizedUC.benefits?.length === 1)
+                    ? `volume_${benefit.metric}`
+                    : `volume_${benefitIndex}_${benefit.metric}`;
+                const v = parseFloat(monthData?.[key]);
+                if (!isNaN(v)) return v;
+                const generic = parseFloat(monthData?.volume);
+                return isNaN(generic) ? 0 : generic;
+            };
+
+            // Helper: total volume for a use case in a given month (sums benefit-specific volumes; falls back to generic volume)
+            const getTotalVolumeForUseCaseMonth = (useCaseOrNormalized, monthData) => {
+                const normalizedUC = (useCaseOrNormalized && useCaseOrNormalized.benefits)
+                    ? useCaseOrNormalized
+                    : ensureUseCaseHasBenefits(useCaseOrNormalized);
+                let found = false;
+                let total = 0;
+                (normalizedUC.benefits || []).forEach((benefit, i) => {
+                    const key = (normalizedUC.benefits.length === 1)
+                        ? `volume_${benefit.metric}`
+                        : `volume_${i}_${benefit.metric}`;
+                    if (monthData && monthData[key] !== undefined && monthData[key] !== null && monthData[key] !== '') {
+                        total += parseFloat(monthData[key]) || 0;
+                        found = true;
+                    }
+                });
+                if (!found) total += parseFloat(monthData?.volume) || 0;
+                return total;
             };
             
             // Helper function to get effective metric value (with hierarchy: Special Group > Category > Global)
@@ -3611,7 +3720,8 @@
                             const netImprovement = Math.max(0, improvement - benefit.baselineValue);
                             const benefitValue = calculateBenefitSavings(normalizedUC, benefit, monthData, benefitIndex);
                             totalBenefitValue += benefitValue;
-                            csv += `,${monthData.volume || 0},${improvement},${netImprovement},${benefitValue.toFixed(2)}`;
+                            const volForThisBenefit = getBenefitVolumeValue(normalizedUC, monthData, benefit, benefitIndex);
+                            csv += `,${volForThisBenefit},${improvement},${netImprovement},${benefitValue.toFixed(2)}`;
                         });
                         csv += `,${totalBenefitValue.toFixed(2)},"${calculationFormula}","${valueDriverType}"\n`;
                     });
@@ -3733,9 +3843,9 @@
                     const normalizedUC = ensureUseCaseHasBenefits(uc);
                     months.forEach(month => {
                         const monthData = uc.data[month.id] || {};
-                        const volume = parseFloat(monthData.volume) || 0;
                         
                         normalizedUC.benefits.forEach((benefit, benefitIndex) => {
+                            const volume = getBenefitVolumeValue(normalizedUC, monthData, benefit, benefitIndex);
                             const fieldKey = normalizedUC.benefits.length === 1 
                                 ? `improvement_${benefit.metric}`
                                 : `improvement_${benefitIndex}_${benefit.metric}`;
@@ -3790,7 +3900,7 @@
                     let monthSavings = 0;
                     useCases.forEach(uc => {
                         const monthData = uc.data[month.id] || {};
-                        monthVolume += parseFloat(monthData.volume) || 0;
+                        monthVolume += getTotalVolumeForUseCaseMonth(uc, monthData);
                         monthSavings += calculateSavings(uc, month.id);
                     });
                     cumulative += monthSavings;
@@ -3810,7 +3920,7 @@
                     }
                     months.forEach(month => {
                         const monthData = uc.data[month.id] || {};
-                        categoryVolumes[uc.category] += parseFloat(monthData.volume) || 0;
+                        categoryVolumes[uc.category] += getTotalVolumeForUseCaseMonth(uc, monthData);
                         categoryTotals[uc.category] += calculateSavings(uc, month.id);
                     });
                 });
@@ -3834,7 +3944,7 @@
                     }
                     months.forEach(month => {
                         const monthData = uc.data[month.id] || {};
-                        channelVolumes[uc.channel] += parseFloat(monthData.volume) || 0;
+                        channelVolumes[uc.channel] += getTotalVolumeForUseCaseMonth(uc, monthData);
                         channelTotals[uc.channel] += calculateSavings(uc, month.id);
                     });
                 });
@@ -4100,7 +4210,7 @@
                         categoryStats[uc.category].benefitCount += normalizedUC.benefits.length;
                         filteredMonths.forEach(month => {
                             const md = uc.data[month.id] || {};
-                            categoryStats[uc.category].volume += parseFloat(md.volume) || 0;
+                            categoryStats[uc.category].volume += getTotalVolumeForUseCaseMonth(uc, md);
                             categoryStats[uc.category].savings += calculateSavings(uc, month.id);
                         });
                     });
@@ -4144,11 +4254,17 @@
                         channelStats[uc.channel].useCases.push(uc.name);
                         filteredMonths.forEach(month => {
                             const md = uc.data[month.id] || {};
-                            channelStats[uc.channel].volume += parseFloat(md.volume) || 0;
+                            const normalizedUC = ensureUseCaseHasBenefits(uc);
+                            channelStats[uc.channel].volume += getTotalVolumeForUseCaseMonth(normalizedUC, md);
                             channelStats[uc.channel].savings += calculateSavings(uc, month.id);
-                            if (md.improvement != null && !isNaN(parseFloat(md.improvement))) {
-                                channelStats[uc.channel].improvements.push(parseFloat(md.improvement));
-                            }
+                            (normalizedUC.benefits || []).forEach((benefit, i) => {
+                                const fieldKey = (normalizedUC.benefits.length === 1)
+                                    ? `improvement_${benefit.metric}`
+                                    : `improvement_${i}_${benefit.metric}`;
+                                if (md[fieldKey] != null && !isNaN(parseFloat(md[fieldKey]))) {
+                                    channelStats[uc.channel].improvements.push(parseFloat(md[fieldKey]));
+                                }
+                            });
                         });
                     });
                     const totalSavingsAll = Object.values(channelStats).reduce((s, v) => s + v.savings, 0);
@@ -4261,7 +4377,7 @@
                         
                         filteredUseCases.forEach(uc => {
                             const md = uc.data[month.id] || {};
-                            const volume = parseFloat(md.volume) || 0;
+                            const volume = getTotalVolumeForUseCaseMonth(uc, md);
                             csv += `,${volume}`;
                             monthTotalVolume += volume;
                         });
@@ -4314,7 +4430,7 @@
                         
                         filteredMonths.forEach(month => {
                             const md = uc.data[month.id] || {};
-                            totalVolume += parseFloat(md.volume) || 0;
+                            totalVolume += getTotalVolumeForUseCaseMonth(uc, md);
                             totalSavings += calculateSavings(uc, month.id);
                         });
                         
@@ -4361,7 +4477,7 @@
                         
                         filteredMonths.forEach(month => {
                             const md = uc.data[month.id] || {};
-                            const volume = parseFloat(md.volume) || 0;
+                            const volume = getTotalVolumeForUseCaseMonth(uc, md);
                             const savings = calculateSavings(uc, month.id);
                             
                             // Collect improvements for each benefit
@@ -4560,7 +4676,7 @@
                         groupStats[key].useCases.push(uc.name);
                         filteredMonths.forEach(month => {
                             const md = uc.data[month.id] || {};
-                            groupStats[key].volume += parseFloat(md.volume) || 0;
+                            groupStats[key].volume += getTotalVolumeForUseCaseMonth(uc, md);
                             groupStats[key].savings += calculateSavings(uc, month.id);
                         });
                     });
@@ -4615,7 +4731,7 @@
                         
                         filteredMonths.forEach(month => {
                             const md = uc.data[month.id] || {};
-                            totalVolume += parseFloat(md.volume) || 0;
+                            totalVolume += getTotalVolumeForUseCaseMonth(uc, md);
                             totalSavings += calculateSavings(uc, month.id);
                             
                             // Collect improvements for each benefit
@@ -4719,11 +4835,11 @@
                         
                         let totalCatVolume = 0, totalCatSavings = 0;
                         useCasesUsingThis.forEach(uc => {
-                            filteredMonths.forEach(month => {
-                                const md = uc.data[month.id] || {};
-                                totalCatVolume += parseFloat(md.volume) || 0;
-                                totalCatSavings += calculateSavings(uc, month.id);
-                            });
+                        filteredMonths.forEach(month => {
+                            const md = uc.data[month.id] || {};
+                            totalCatVolume += getTotalVolumeForUseCaseMonth(uc, md);
+                            totalCatSavings += calculateSavings(uc, month.id);
+                        });
                         });
                         
                         csv += `${category},${data.costType},$${data.value},${aht},$${convertedCost},"${useCaseNames}",${Math.round(totalCatVolume)},$${Math.round(totalCatSavings)}\n`;
@@ -4739,11 +4855,11 @@
                         
                         let channelVolume = 0, channelSavings = 0;
                         useCasesUsingDefault.forEach(uc => {
-                            filteredMonths.forEach(month => {
-                                const md = uc.data[month.id] || {};
-                                channelVolume += parseFloat(md.volume) || 0;
-                                channelSavings += calculateSavings(uc, month.id);
-                            });
+                        filteredMonths.forEach(month => {
+                            const md = uc.data[month.id] || {};
+                            channelVolume += getTotalVolumeForUseCaseMonth(uc, md);
+                            channelSavings += calculateSavings(uc, month.id);
+                        });
                         });
                         
                         csv += `${channel},$${cost},${defaultAHT},"${useCaseNames}",${Math.round(channelVolume)},$${Math.round(channelSavings)}\n`;
@@ -5967,7 +6083,7 @@
                                             )}
                                         </h3>
                                         
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-6">
                                             {/* Quick Actions */}
                                             <div>
                                                 <h4 className="font-medium mb-3">Quick Actions</h4>
@@ -5994,7 +6110,62 @@
                                                         Delete Selected
                                                     </button>
                                                 </div>
-                                                
+                                            </div>
+                                            
+                                            {/* Batch Updates */}
+                                            <div>
+                                                <h4 className="font-medium mb-3">Batch Updates</h4>
+                                                <div className="space-y-3">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                                        <select
+                                                            onChange={(e) => e.target.value && batchUpdateCategory(e.target.value)}
+                                                            className="w-full px-2 py-1 text-sm border rounded"
+                                                            disabled={selectedUseCases.size === 0}
+                                                        >
+                                                            <option value="">Select category...</option>
+                                                            {categories.map(cat => (
+                                                                <option key={cat} value={cat}>{cat}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Channel</label>
+                                                        <select
+                                                            onChange={(e) => e.target.value && batchUpdateChannel(e.target.value)}
+                                                            className="w-full px-2 py-1 text-sm border rounded"
+                                                            disabled={selectedUseCases.size === 0}
+                                                        >
+                                                            <option value="">Select channel...</option>
+                                                            {ALL_CHANNELS.map(channel => (
+                                                                <option key={channel.id} value={channel.id}>{channel.label}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Special Group</label>
+                                                        <select
+                                                            onChange={(e) => batchUpdateSpecialGroup(e.target.value)}
+                                                            className="w-full px-2 py-1 text-sm border rounded"
+                                                            disabled={selectedUseCases.size === 0}
+                                                        >
+                                                            <option value="">Select special group...</option>
+                                                            <option value="">Remove Special Group</option>
+                                                            {/* Add available special groups based on selected use cases */}
+                                                            {Array.from(new Set(
+                                                                useCases
+                                                                    .filter(uc => selectedUseCases.has(uc.id))
+                                                                    .flatMap(uc => getAvailableSpecialGroups(uc.category, uc.channel))
+                                                            )).map(group => (
+                                                                <option key={group} value={group}>{group}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Fill Down - full width row */}
+                                            <div className="lg:col-span-2">
                                                 {/* Fill Down Controls */}
                                                 {selectedUseCases.size > 0 && (() => {
                                                     // Collect all unique benefits from selected use cases
@@ -6510,58 +6681,6 @@
                                                     );
                                                 })()}
                                             </div>
-                                            
-                                            {/* Batch Updates */}
-                                            <div>
-                                                <h4 className="font-medium mb-3">Batch Updates</h4>
-                                                <div className="space-y-3">
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                                        <select
-                                                            onChange={(e) => e.target.value && batchUpdateCategory(e.target.value)}
-                                                            className="w-full px-2 py-1 text-sm border rounded"
-                                                            disabled={selectedUseCases.size === 0}
-                                                        >
-                                                            <option value="">Select category...</option>
-                                                            {categories.map(cat => (
-                                                                <option key={cat} value={cat}>{cat}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Channel</label>
-                                                        <select
-                                                            onChange={(e) => e.target.value && batchUpdateChannel(e.target.value)}
-                                                            className="w-full px-2 py-1 text-sm border rounded"
-                                                            disabled={selectedUseCases.size === 0}
-                                                        >
-                                                            <option value="">Select channel...</option>
-                                                            {ALL_CHANNELS.map(channel => (
-                                                                <option key={channel.id} value={channel.id}>{channel.label}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Special Group</label>
-                                                        <select
-                                                            onChange={(e) => batchUpdateSpecialGroup(e.target.value)}
-                                                            className="w-full px-2 py-1 text-sm border rounded"
-                                                            disabled={selectedUseCases.size === 0}
-                                                        >
-                                                            <option value="">Select special group...</option>
-                                                            <option value="">Remove Special Group</option>
-                                                            {/* Add available special groups based on selected use cases */}
-                                                            {Array.from(new Set(
-                                                                useCases
-                                                                    .filter(uc => selectedUseCases.has(uc.id))
-                                                                    .flatMap(uc => getAvailableSpecialGroups(uc.category, uc.channel))
-                                                            )).map(group => (
-                                                                <option key={group} value={group}>{group}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -6732,7 +6851,18 @@
                                                     const totalSavings = months.reduce((sum, month) => 
                                                         sum + calculateSavings(normalizedUseCase, month.id), 0
                                                     );
-                                                    
+
+                                                    // Per-benefit totals across all shown months (no new calc functions)
+                                                    const totalsByBenefit = new Map();
+                                                    months.forEach(month => {
+                                                        const monthData = normalizedUseCase.data[month.id] || {};
+                                                        normalizedUseCase.benefits.forEach((benefit, benefitIndex) => {
+                                                            const s = calculateBenefitSavings(normalizedUseCase, benefit, monthData, benefitIndex);
+                                                            totalsByBenefit.set(benefit.metric, (totalsByBenefit.get(benefit.metric) || 0) + s);
+                                                        });
+                                                    });
+                                                    const perBenefitTotals = Array.from(totalsByBenefit.entries()).sort((a, b) => b[1] - a[1]);
+
                                                     return (
                                                         <tr key={useCase.id} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${selectedUseCases.has(useCase.id) ? 'ring-2 ring-blue-300 bg-blue-50' : ''}`}>
                                                             {bulkEditMode && (
@@ -6812,6 +6942,8 @@
                                                                                         ? `improvement_${benefit.metric}`
                                                                                         : `improvement_${benefitIndex}_${benefit.metric}`;
                                                                                     const volumeLabel = getVolumeLabel(benefit.metric);
+                                                                                    // Calculate per-benefit savings inline without new functions
+                                                                                    const benefitSavings = calculateBenefitSavings(normalizedUseCase, benefit, monthData, benefitIndex);
                                                                                     
                                                                                     return (
                                                                                         <div key={`${benefit.metric}-${benefitIndex}`} className="p-2 bg-gray-50 rounded-md border border-gray-200">
@@ -6849,6 +6981,12 @@
                                                                                                         title={`Improvement value for ${benefit.metric}`}
                                                                                                     />
                                                                                                 </div>
+                                                                                                {/* Inline per-benefit subtotal when multiple benefits */}
+                                                                                                {normalizedUseCase.benefits.length > 1 && (
+                                                                                                    <div className="text-[10px] text-green-700 font-semibold text-right">
+                                                                                                        ${Math.round(benefitSavings).toLocaleString()}
+                                                                                                    </div>
+                                                                                                )}
                                                                                             </div>
                                                                                         </div>
                                                                                     );
@@ -6884,8 +7022,20 @@
                                                                     </td>
                                                                 );
                                                             })}
-                                                            <td className="px-4 py-3 font-bold text-green-600">
-                                                                ${Math.round(totalSavings).toLocaleString()}
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-bold text-green-600">
+                                                                    ${Math.round(totalSavings).toLocaleString()}
+                                                                </div>
+                                                                {normalizedUseCase.benefits.length > 1 && (
+                                                                    <div className="mt-1 space-y-0.5 text-[10px] text-green-700">
+                                                                        {perBenefitTotals.map(([metric, value]) => (
+                                                                            <div key={metric} className="flex justify-between gap-2">
+                                                                                <span className="truncate max-w-[140px]">{metric.split('(')[0].trim()}</span>
+                                                                                <span>${Math.round(value).toLocaleString()}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </td>
                                                             <td className="px-4 py-3">
                                                                 <div className="flex gap-1">
@@ -7264,7 +7414,7 @@
                                                         categoryStats[uc.category].useCases.push(uc.name);
                                                         filteredMonths.forEach(month => {
                                                             const md = uc.data[month.id] || {};
-                                                            categoryStats[uc.category].volume += parseFloat(md.volume) || 0;
+                                                            categoryStats[uc.category].volume += getTotalVolumeForUseCaseMonth(uc, md);
                                                             categoryStats[uc.category].savings += calculateSavings(uc, month.id);
                                                         });
                                                     });
@@ -7336,9 +7486,18 @@
                                                         channelStats[uc.channel].useCases.push(uc.name);
                                                         filteredMonths.forEach(month => {
                                                             const md = uc.data[month.id] || {};
-                                                            channelStats[uc.channel].volume += parseFloat(md.volume) || 0;
+                                                            const normalizedUC = ensureUseCaseHasBenefits(uc);
+                                                            channelStats[uc.channel].volume += getTotalVolumeForUseCaseMonth(normalizedUC, md);
                                                             channelStats[uc.channel].savings += calculateSavings(uc, month.id);
-                                                            if (md.improvement != null) channelStats[uc.channel].improvements.push(parseFloat(md.improvement) || 0);
+                                                            // Collect improvements across benefits for averaging
+                                                            (normalizedUC.benefits || []).forEach((benefit, i) => {
+                                                                const fieldKey = (normalizedUC.benefits.length === 1)
+                                                                    ? `improvement_${benefit.metric}`
+                                                                    : `improvement_${i}_${benefit.metric}`;
+                                                                if (md[fieldKey] != null) {
+                                                                    channelStats[uc.channel].improvements.push(parseFloat(md[fieldKey]) || 0);
+                                                                }
+                                                            });
                                                         });
                                                     });
                                                     return Object.entries(channelStats).map(([channel, stats]) => {
@@ -7567,7 +7726,7 @@
                                                         
                                                         filteredMonths.forEach(month => {
                                                             const md = uc.data[month.id] || {};
-                                                            totalVolume += parseFloat(md.volume) || 0;
+                                                            totalVolume += getTotalVolumeForUseCaseMonth(uc, md);
                                                             totalSavings += calculateSavings(uc, month.id);
                                                             
                                                             // Get detailed breakdown for this month
@@ -7751,7 +7910,7 @@
                                                         groupStats[key].useCases.push(uc.name);
                                                         filteredMonths.forEach(month => {
                                                             const md = uc.data[month.id] || {};
-                                                            groupStats[key].volume += parseFloat(md.volume) || 0;
+                                                            groupStats[key].volume += getTotalVolumeForUseCaseMonth(uc, md);
                                                             groupStats[key].savings += calculateSavings(uc, month.id);
                                                         });
                                                     });
@@ -7958,8 +8117,10 @@
                                             <button
                                                 onClick={() => {
                                                     if (editingUseCase.name) {
+                                                        const original = useCases.find(uc => uc.id === editingUseCase.id);
+                                                        const migrated = original ? migrateUseCaseBenefitKeys(original, editingUseCase) : editingUseCase;
                                                         setUseCases(useCases.map(uc => 
-                                                            uc.id === editingUseCase.id ? editingUseCase : uc
+                                                            uc.id === editingUseCase.id ? migrated : uc
                                                         ));
                                                         setShowEditModal(false);
                                                         setEditingUseCase(null);

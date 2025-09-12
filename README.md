@@ -1,45 +1,61 @@
 # AI Contact Center ROI Calculator
 
-A comprehensive standalone HTML application for evaluating AI implementation ROI in contact centers, featuring advanced cost modeling with nested special groups, agent utilization factors, and multi-dimensional analytics with interactive charts.
+A comprehensive, single‑file HTML application for evaluating AI ROI in contact centers. It includes advanced cost modeling with nested special groups, agent utilization and AHT handling, powerful bulk editing, spreadsheet‑style paste, undo/redo, templates, and multi‑dimensional analytics with interactive charts and detailed CSV exports.
 
 ## Features
 
-### 📊 **Advanced Cost Modeling**
-- **4-Level Cost Hierarchy**: Channel defaults → Category defaults → Category-Channel overrides → Special Groups (nested within category-channels)
-- **Flexible Pricing Models**: Support for both hourly rates and per-contact pricing across all levels
-- **Agent Utilization Factor**: Account for non-productive time (breaks, training, idle time) with adjustable utilization rates (60-85% typical)
-- **Smart Cost Calculation**: Automatic conversion from hourly rates to per-contact costs using AHT and utilization factors
+### 📊 Advanced Cost Modeling
+- 4‑level cost hierarchy: Channel defaults → Category defaults → Category‑Channel overrides → Special Groups (nested within category–channel pairs)
+- Flexible pricing models: per‑contact or hourly at every level
+- Agent utilization factor: adjust for non‑productive time (60–85% typical)
+- Smart conversion: hourly → per‑contact via AHT and utilization
+- Cost source transparency: shows which tier provided the effective cost
 
-### 📈 **Comprehensive Metric Tracking**
-- **Deflection Rate (%)**: Percentage of contacts handled without agent involvement
-- **AHT Reduction (min)**: Minutes saved per contact through AI assistance  
-- **Automation Rate (%)**: Percentage of tasks fully automated
-- **Self-Service Resolution (%)**: Percentage resolved through self-service
-- **Transfer Rate Reduction (%)**: Reduction in transfer rates between agents
-- **Baseline Value Support**: Set baseline performance for accurate net improvement calculations
+### 🧩 Multi‑Benefit Use Cases
+- Each use case can include 1+ benefits/metrics with baselines
+- Supported metrics: AHT Reduction (min), Deflection, Automation, Self‑Service Resolution, Transfer Reduction, NPS Improvement (points), CSAT Improvement (%), FCR Improvement (%), Conversion Rate (%), Agent Retention (%), Compliance Rate (%)
+- Per‑benefit inputs: separate volume/improvement fields and baselines
+- Per‑benefit sub‑totals: inline savings shown next to each benefit when a use case has multiple benefits
+- Use‑case totals: month totals and all‑months totals with optional per‑benefit breakdown
 
-### ⚡ **Multi-Channel Support**
-- **6 Communication Channels**: Phone, Chat, Email, SMS, Social, Bot
-- **Channel-Specific Costs**: Different cost structures per channel
-- **Context-Aware Special Groups**: Special groups are specific to category-channel combinations
+### ⚡ Bulk Edit Mode
+- Select multiple use cases and apply actions:
+  - Clear, duplicate, or delete selected
+  - Batch updates: change Category, Channel, or Special Group for selected
+  - Fill Down engine with three modes:
+    - Constant: replace values
+    - Adjust: add/subtract deltas
+    - Gradual: start→end over months with curve types
+      - Curves: Linear, Exponential, Stepped, Custom Milestones (e.g., months 3/6/9)
+  - Per‑metric “apply” buttons: Volume only, Improvement only, or Both
+- Spreadsheet‑style paste: paste volume + improvements directly from Excel/Sheets (Ctrl/Cmd+V)
+- Undo/Redo: keyboard shortcuts (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z or Y)
+- Select‑all: Ctrl/Cmd+A in bulk edit
+- Visual hints for unsaved changes and quick‑action buttons per cell
 
-### 📋 **Advanced Analytics & Reporting**
-- **Interactive Charts**: Monthly trends, cumulative savings, category/channel/use case breakdowns
-- **Multi-dimensional Views**: Analyze by category, channel, use case, or special group
-- **Transparent Calculations**: CSV exports show detailed formulas and cost sources
-- **Performance Tracking**: Monthly volume and improvement tracking with trend analysis
+### 🧪 Templates
+- Save the current set of use cases (structure only, without data values) as a named template
+- Load or delete templates from the UI to bootstrap scenarios quickly
 
-### 💾 **Data Management**
-- **Auto-save Functionality**: Real-time local storage backup
-- **Import/Export**: JSON backup and restore capabilities
-- **CSV Reports**: Detailed exports with calculation transparency
-- **Data Validation**: Built-in validation and error handling
+### 📈 Analytics & Reporting
+- Views: Overall, Category, Channel, Use Case, Special Group
+- Charts: monthly trend, cumulative savings, distributions, and rankings
+- Filters: Category, Channel, Special Group, Metric; custom analytics date range
+- “Top contributor” and benefit‑level breakdowns per use case
+- CSV export of current analytics view and comprehensive multi‑section CSV export covering:
+  - Multi‑benefit calculations per use case and month (with formulas, costs, and value‑driver types)
+  - Per‑benefit input snapshots and step‑by‑step calculation details
+  - Monthly totals, category totals, channel totals, special‑group summaries
+  - Use case rankings, performance tables, and contribution breakdowns
 
-### 📖 **User Experience**
-- **Input Guidance**: Built-in industry benchmarks and best practices
-- **Cost Source Transparency**: Clear indication of which cost tier is being used
-- **Smart UI**: Context-aware dropdowns and dynamic form validation
-- **Responsive Design**: Works on desktop and mobile browsers
+### 💾 Data Management
+- Auto‑save to localStorage
+- JSON import/export for backups and sharing
+- Robust validation and helpful error messages
+
+### 📖 User Experience
+- Input Guidance tab with industry benchmarks and best practices for each metric
+- Responsive design and keyboard‑friendly editing
 
 ## Quick Start
 
@@ -49,22 +65,22 @@ No installation, no build process, no dependencies to manage. The application ru
 
 ## Technology Stack
 
-- **React 18**: Via CDN for component-based UI with hooks and modern patterns
-- **Tailwind CSS**: Via CDN for utility-first styling and responsive design
-- **Chart.js 4.x**: For interactive data visualizations with modern chart types
-- **Babel Standalone**: For real-time JSX compilation in browser
-- **Local Storage API**: For automatic client-side data persistence and recovery
+- React 18 (CDN)
+- Tailwind CSS (CDN)
+- Chart.js 4.x (CDN)
+- Babel Standalone (CDN) for JSX in the browser
+- Local Storage API for persistence
 
 ## File Structure
 
 ```
-├── calculator.html       # 🎯 Main application (standalone)
-├── src/                  # 📁 Development reference structure
-├── package.json          # 📦 Development dependencies (optional)
-└── README.md            # 📖 This file
+├── calculator.html    # Main application (standalone)
+├── README.md          # This file
+├── LICENSE            # MIT License
+└── export_test.*      # Example export artifacts (optional)
 ```
 
-**⚠️ Important**: The `src/` directory is for development reference only. All functionality is contained in the single `calculator.html` file.
+All functionality is contained in the single `calculator.html` file; there is no build step.
 
 ## Key Concepts
 
@@ -153,6 +169,20 @@ The system automatically selects the most specific cost available:
    - The system calculates net improvement (improvement - baseline)
    - Savings are computed using the appropriate cost hierarchy
 
+### Bulk Edit Mode
+
+Open the Bulk Operations panel in the Data Entry tab when at least one use case is selected.
+
+- Quick Actions: Clear, Duplicate, and Delete selected use cases
+- Fill Down: choose mode (Constant, Adjust, or Gradual), pick curve (Linear/Exponential/Stepped/Custom), and apply per‑metric or “Apply All”
+- Batch Updates: change Category, Channel, Special Group for the selected set
+- Keyboard Shortcuts: Ctrl/Cmd+Z (Undo), Ctrl/Cmd+Shift+Z or Y (Redo), Ctrl/Cmd+A (Select All)
+- Copy & Paste: paste directly from spreadsheets; first row/column conventions are handled automatically
+
+### Templates
+
+Save the current use‑case structure as a template (no data values). Load a template at any time to start a new scenario.
+
 ### Analysis & Reporting
 6. **Review Analytics**
    - Switch to **Analytics** tab for interactive charts
@@ -165,10 +195,10 @@ The system automatically selects the most specific cost available:
    - Reports show cost sources, formulas, and utilization factors
 
 ### Advanced Features
-- **Edit Use Cases**: Modify category, channel, or special group assignments
-- **Cost Transparency**: Hover over costs to see calculation sources
-- **Smart Validation**: System prevents invalid special group assignments
-- **Auto-Save**: All changes saved automatically to browser storage
+- Edit Use Cases: modify category, channel, benefits, and baselines at any time
+- Cost Transparency: exports include the cost source and formula used
+- Smart Validation: prevents mismatched special‑group assignments
+- Auto‑Save: changes persist automatically in the browser
 
 ## Example Scenarios
 
@@ -227,6 +257,11 @@ The system automatically selects the most specific cost available:
 - **Edge 90+** ✅ Full support
 - **Mobile browsers** ✅ Responsive design
 
+## Privacy & Offline
+
+- All data is stored in your browser; no server required.
+- The app uses CDN links for React/Tailwind/Chart.js/Babel. An internet connection is required to load those libraries for the first time.
+
 ## Troubleshooting
 
 ### Common Issues
@@ -236,9 +271,9 @@ The system automatically selects the most specific cost available:
 - **Incorrect calculations**: Check agent utilization and AHT settings
 
 ### Performance
-- **Large datasets**: Application handles 1000+ use cases efficiently
-- **Browser storage**: ~5-10MB typical usage, no server required
-- **Export size**: CSV files scale with data volume
+- Designed to handle large scenarios efficiently
+- Browser storage: ~5–10MB typical usage
+- Export size: CSV files scale with data volume
 
 ## Contributing & Support
 
