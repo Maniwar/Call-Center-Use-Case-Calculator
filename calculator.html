@@ -4905,6 +4905,134 @@
                 window.URL.revokeObjectURL(url);
             };
 
+            // Enhanced CSV export with formula documentation for Excel traceability
+            const exportToExcelTraceableCSV = () => {
+                // This creates a CSV with formula documentation that can be imported to Excel
+                // and manually converted to formulas if needed, without maintenance overhead
+                let csv = '=== AI ROI CALCULATOR - TRACEABLE EXPORT ===\n';
+                csv += `Export Date: ${new Date().toISOString()}\n`;
+                csv += `Analysis Period: ${dateRange.start} to ${dateRange.end}\n\n`;
+                
+                // Section 1: Cost Configuration Reference
+                csv += '=== COST CONFIGURATION (For Formula Reference) ===\n';
+                csv += 'Config Type,Category,Channel,Special Group,Cost Type,Value ($),AHT (min),Priority,Cell Ref\n';
+                
+                let configRow = 7; // Starting row for config data
+                
+                // Channel defaults
+                Object.entries(channelCosts).forEach(([channel, cost]) => {
+                    csv += `Channel Default,,${channel},,Per Contact,${cost},${defaultAHT},4 (Lowest),B${configRow}\n`;
+                    configRow++;
+                });
+                
+                // Category costs with cell references
+                Object.entries(categoryCosts).forEach(([category, categoryData]) => {
+                    const defaultCost = categoryData._default || categoryData;
+                    if (defaultCost && defaultCost.costType) {
+                        csv += `Category Default,${category},All,,${defaultCost.costType},${defaultCost.value},${defaultCost.ahtMinutes || defaultAHT},3,B${configRow}\n`;
+                        configRow++;
+                    }
+                    
+                    Object.entries(categoryData).forEach(([channel, channelData]) => {
+                        if (channel !== '_default' && channelData) {
+                            if (channelData._default) {
+                                csv += `Category-Channel,${category},${channel},,${channelData._default.costType},${channelData._default.value},${channelData._default.ahtMinutes || defaultAHT},2,B${configRow}\n`;
+                                configRow++;
+                            }
+                            if (channelData._specialGroups) {
+                                Object.entries(channelData._specialGroups).forEach(([group, groupData]) => {
+                                    csv += `Special Group,${category},${channel},${group},${groupData.costType},${groupData.value},${groupData.ahtMinutes || defaultAHT},1 (Highest),B${configRow}\n`;
+                                    configRow++;
+                                });
+                            }
+                        }
+                    });
+                });
+                
+                csv += '\n=== CALCULATION DETAILS WITH FORMULA DOCUMENTATION ===\n';
+                csv += 'Use Case,Benefit,Month,Volume,Improvement,Baseline,Net Improvement,Effective Cost ($),Formula Used,Calculated Savings ($),Cost Source\n';
+                
+                useCases.forEach(uc => {
+                    const normalizedUC = ensureUseCaseHasBenefits(uc);
+                    normalizedUC.benefits.forEach((benefit, benefitIndex) => {
+                        months.forEach(month => {
+                            const monthData = uc.data[month.id] || {};
+                            const volumeFieldKey = normalizedUC.benefits.length === 1 
+                                ? `volume_${benefit.metric}`
+                                : `volume_${benefitIndex}_${benefit.metric}`;
+                            const improvementFieldKey = normalizedUC.benefits.length === 1 
+                                ? `improvement_${benefit.metric}`
+                                : `improvement_${benefitIndex}_${benefit.metric}`;
+                            
+                            const volume = parseFloat(monthData[volumeFieldKey] || monthData.volume) || 0;
+                            const improvement = parseFloat(monthData[improvementFieldKey]) || 0;
+                            const netImprovement = Math.max(0, improvement - benefit.baselineValue);
+                            const effectiveCost = getEffectiveCost(uc, uc.channel);
+                            const savings = calculateBenefitSavings(normalizedUC, benefit, monthData, benefitIndex);
+                            const costSource = getCostSourceDescription(uc, uc.channel);
+                            
+                            // Document the formula for this calculation
+                            let formula = '';
+                            if (benefit.metric.includes('Deflection') || benefit.metric.includes('Rate')) {
+                                formula = `${volume} × (${netImprovement}% / 100) × $${effectiveCost.toFixed(2)}`;
+                            } else if (benefit.metric.includes('AHT')) {
+                                const costPerMin = effectiveCost / (getApplicableAHT(uc) || defaultAHT);
+                                formula = `${volume} × ${netImprovement} min × $${costPerMin.toFixed(3)}/min`;
+                            } else if (benefit.metric.includes('NPS')) {
+                                const npsValue = getEffectiveMetricValue('npsImprovement', uc);
+                                formula = `${volume} × ${improvement} points × $${npsValue}/point`;
+                            } else if (benefit.metric.includes('CSAT')) {
+                                const csatValue = getEffectiveMetricValue('csatImprovement', uc);
+                                formula = `${volume} × ${netImprovement}% × $${csatValue}`;
+                            }
+                            
+                            csv += `"${uc.name}","${benefit.metric}",${month.month} ${month.year},${volume},${improvement},${benefit.baselineValue},${netImprovement},${effectiveCost.toFixed(2)},"${formula}",${savings.toFixed(2)},"${costSource}"\n`;
+                        });
+                    });
+                });
+                
+                csv += '\n=== SUMMARY BY CATEGORY ===\n';
+                csv += 'Category,Total Savings ($),% of Total,Use Case Count\n';
+                
+                const categoryTotals = {};
+                const categoryCounts = {};
+                useCases.forEach(uc => {
+                    if (!categoryTotals[uc.category]) {
+                        categoryTotals[uc.category] = 0;
+                        categoryCounts[uc.category] = 0;
+                    }
+                    categoryCounts[uc.category]++;
+                    months.forEach(month => {
+                        categoryTotals[uc.category] += calculateSavings(uc, month.id);
+                    });
+                });
+                
+                const grandTotal = Object.values(categoryTotals).reduce((sum, val) => sum + val, 0);
+                Object.entries(categoryTotals).forEach(([category, total]) => {
+                    const percentage = grandTotal > 0 ? ((total / grandTotal) * 100).toFixed(1) : '0';
+                    csv += `${category},${total.toFixed(2)},${percentage}%,${categoryCounts[category]}\n`;
+                });
+                
+                csv += `\nGRAND TOTAL,${grandTotal.toFixed(2)},100%,${useCases.length}\n`;
+                
+                // Add instructions for Excel users
+                csv += '\n=== EXCEL CONVERSION INSTRUCTIONS ===\n';
+                csv += '"To convert formulas to live Excel formulas:"\n';
+                csv += '"1. Import this CSV into Excel"\n';
+                csv += '"2. Create named ranges for cost configuration values"\n';
+                csv += '"3. Replace formula documentation with actual Excel formulas"\n';
+                csv += '"4. Use VLOOKUP or INDEX/MATCH to reference cost configuration"\n';
+                csv += '"Example: Convert ""1000 × (70% / 100) × $4.50"" to ""=D2*(E2/100)*VLOOKUP(B2,CostConfig,2,FALSE)"""\n';
+                
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `roi_traceable_export_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            };
+
             const exportToJSON = () => {
                 const dataToExport = {
                     channelCosts,
@@ -5386,6 +5514,13 @@
                                         className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                                     >
                                         <Icons.Download /> Export CSV
+                                    </button>
+                                    <button
+                                        onClick={exportToExcelTraceableCSV}
+                                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+                                        title="Export with formula documentation for Excel - shows exact calculations and cost hierarchy references"
+                                    >
+                                        <Icons.Chart /> Excel Traceable
                                     </button>
                                     <button
                                         onClick={exportToJSON}
