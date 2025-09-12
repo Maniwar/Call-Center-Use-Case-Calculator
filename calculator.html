@@ -3969,7 +3969,9 @@
                 
                 Object.entries(channelTotals).forEach(([channel, savings]) => {
                     const percentage = totalSavingsAll > 0 ? (savings / totalSavingsAll * 100).toFixed(1) : 0;
-                    csv += `${channel},${channelVolumes[channel]},${savings.toFixed(2)},${channelCosts[channel]},${percentage}%\n`;
+                    // Handle both simple numbers and object format for channel costs
+                    const channelCost = typeof channelCosts[channel] === 'object' ? channelCosts[channel].value : (channelCosts[channel] || 0);
+                    csv += `${channel},${channelVolumes[channel]},${savings.toFixed(2)},${channelCost},${percentage}%\n`;
                 });
                 
                 // SECTION 8: VALUE DRIVER TYPE BREAKDOWN
@@ -4304,7 +4306,9 @@
                             }
                         }
                         const useCaseNames = stats.useCases.join('; ');
-                        csv += `${ch},${stats.useCases.length},${Math.round(stats.volume)},${Math.round(stats.savings)},${channelCosts[ch] || 0},${avgImp}%,${pct}%,"${useCaseNames}"\n`;
+                        // Handle both simple numbers and object format for channel costs
+                        const channelCost = typeof channelCosts[ch] === 'object' ? channelCosts[ch].value : (channelCosts[ch] || 0);
+                        csv += `${ch},${stats.useCases.length},${Math.round(stats.volume)},${Math.round(stats.savings)},${channelCost},${avgImp}%,${pct}%,"${useCaseNames}"\n`;
                     });
                     
                     csv += '\n=== COST OVERRIDE INFORMATION ===\n';
@@ -4314,7 +4318,9 @@
                             filteredUseCases.some(uc => uc.channel === ch && uc.category === cat)).join('; ') || 'None';
                         const specialOverrides = getAllSpecialGroups().filter(sg => 
                             filteredUseCases.some(uc => uc.channel === ch && uc.specialGroup === sg)).join('; ') || 'None';
-                        csv += `${ch},${channelCosts[ch]},"${categoryOverrides}","${specialOverrides}"\n`;
+                        // Handle both simple numbers and object format for channel costs
+                        const channelCost = typeof channelCosts[ch] === 'object' ? channelCosts[ch].value : (channelCosts[ch] || 0);
+                        csv += `${ch},${channelCost},"${categoryOverrides}","${specialOverrides}"\n`;
                     });
                     
                 } else if (analyticsView === 'usecase') {
@@ -4905,7 +4911,101 @@
                 window.URL.revokeObjectURL(url);
             };
 
-            // Enhanced CSV export with formula documentation for Excel traceability
+            // Enhanced CSV export with actual Excel formulas for full automation
+            const exportToExcelWithFormulas = () => {
+                // This creates a CSV with ACTUAL Excel formulas that will calculate automatically
+                let csv = 'sep=,\n'; // Tell Excel to use comma separator
+                csv += '=== AI ROI CALCULATOR - EXCEL AUTOMATED FORMULAS ===\n';
+                csv += `Export Date,${new Date().toISOString()}\n`;
+                csv += `Analysis Period,"${dateRange.start} to ${dateRange.end}"\n`;
+                csv += `Default AHT,${defaultAHT}\n`;
+                csv += `Agent Utilization,${agentUtilization}\n`;
+                csv += '\n';
+                
+                // Sheet layout with actual Excel formulas
+                csv += 'COST CONFIGURATION TABLE\n';
+                csv += 'Type,Category,Channel,Special Group,Cost Type,Value,AHT,Effective Cost\n';
+                
+                let costRow = 9; // Track current row for formula references
+                const costLookup = {}; // Store row references for VLOOKUP
+                
+                // Build cost configuration with row tracking
+                Object.entries(channelCosts).forEach(([channel, cost]) => {
+                    const costValue = typeof cost === 'object' ? cost.value : cost;
+                    const costType = typeof cost === 'object' && cost.costType ? cost.costType : 'perContact';
+                    const aht = typeof cost === 'object' && cost.ahtMinutes ? cost.ahtMinutes : defaultAHT;
+                    const effectiveFormula = costType === 'hourly' 
+                        ? `=F${costRow}*G${costRow}/60` 
+                        : `=F${costRow}`;
+                    csv += `Channel,All,${channel},,${costType === 'hourly' ? 'Hourly' : 'Per Contact'},${costValue},${aht},${effectiveFormula}\n`;
+                    costLookup[`channel_${channel}`] = costRow;
+                    costRow++;
+                });
+                
+                csv += '\n';
+                csv += 'CALCULATIONS WITH LIVE FORMULAS\n';
+                csv += 'Use Case,Category,Channel,Special Group,Benefit,Month,Volume,Improvement,Baseline,Net Improvement,Effective Cost,Savings Formula,Savings\n';
+                
+                let calcRow = costRow + 3; // Start calculations after cost table
+                
+                useCases.forEach(uc => {
+                    const normalizedUC = ensureUseCaseHasBenefits(uc);
+                    normalizedUC.benefits.forEach((benefit, benefitIndex) => {
+                        months.forEach(month => {
+                            const monthData = uc.data[month.id] || {};
+                            const volumeFieldKey = normalizedUC.benefits.length === 1 
+                                ? `volume_${benefit.metric}`
+                                : `volume_${benefitIndex}_${benefit.metric}`;
+                            const improvementFieldKey = normalizedUC.benefits.length === 1 
+                                ? `improvement_${benefit.metric}`
+                                : `improvement_${benefitIndex}_${benefit.metric}`;
+                            
+                            const volume = parseFloat(monthData[volumeFieldKey] || monthData.volume) || 0;
+                            const improvement = parseFloat(monthData[improvementFieldKey]) || 0;
+                            const effectiveCost = getEffectiveCost(uc, uc.channel);
+                            
+                            // Create actual Excel formulas
+                            let savingsFormula = '';
+                            if (benefit.metric.includes('Deflection') || benefit.metric.includes('Rate')) {
+                                savingsFormula = `=G${calcRow}*(J${calcRow}/100)*K${calcRow}`;
+                            } else if (benefit.metric.includes('AHT')) {
+                                savingsFormula = `=G${calcRow}*J${calcRow}*(K${calcRow}/${defaultAHT})`;
+                            } else if (benefit.metric.includes('NPS') || benefit.metric.includes('CSAT')) {
+                                const metricValue = benefit.metric.includes('NPS') ? 
+                                    getEffectiveMetricValue('npsImprovement', uc) :
+                                    getEffectiveMetricValue('csatImprovement', uc);
+                                savingsFormula = `=G${calcRow}*H${calcRow}*${metricValue}`;
+                            } else {
+                                savingsFormula = `=G${calcRow}*(J${calcRow}/100)*K${calcRow}`;
+                            }
+                            
+                            csv += `"${uc.name}",${uc.category},${uc.channel},${uc.specialGroup || 'None'},"${benefit.metric}",${month.month} ${month.year},`;
+                            csv += `${volume},${improvement},${benefit.baselineValue},=MAX(0;H${calcRow}-I${calcRow}),${effectiveCost},"${savingsFormula}",${savingsFormula}\n`;
+                            calcRow++;
+                        });
+                    });
+                });
+                
+                csv += '\n';
+                csv += 'SUMMARY\n';
+                csv += `Total Savings,=SUM(M${costRow + 3}:M${calcRow - 1})\n`;
+                csv += '\n';
+                csv += 'INSTRUCTIONS\n';
+                csv += '"1. Open this file in Excel"\n';
+                csv += '"2. The formulas are already active - no conversion needed!"\n';
+                csv += '"3. Column M contains live formulas that calculate automatically"\n';
+                csv += '"4. Modify volumes or improvements to see instant recalculation"\n';
+                
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `roi_excel_formulas_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            };
+            
+            // Keep the original traceable export for documentation purposes
             const exportToExcelTraceableCSV = () => {
                 // This creates a CSV with formula documentation that can be imported to Excel
                 // and manually converted to formulas if needed, without maintenance overhead
@@ -4921,7 +5021,11 @@
                 
                 // Channel defaults
                 Object.entries(channelCosts).forEach(([channel, cost]) => {
-                    csv += `Channel Default,,${channel},,Per Contact,${cost},${defaultAHT},4 (Lowest),B${configRow}\n`;
+                    // Handle both simple numbers and object format
+                    const costValue = typeof cost === 'object' ? cost.value : cost;
+                    const costType = typeof cost === 'object' && cost.costType ? cost.costType : 'perContact';
+                    const aht = typeof cost === 'object' && cost.ahtMinutes ? cost.ahtMinutes : defaultAHT;
+                    csv += `Channel Default,,${channel},,${costType === 'hourly' ? 'Hourly' : 'Per Contact'},${costValue},${aht},4 (Lowest),F${configRow}\n`;
                     configRow++;
                 });
                 
@@ -5516,11 +5620,18 @@
                                         <Icons.Download /> Export CSV
                                     </button>
                                     <button
+                                        onClick={exportToExcelWithFormulas}
+                                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                                        title="Export with LIVE Excel formulas - opens in Excel with automatic calculations!"
+                                    >
+                                        <Icons.Dollar /> Excel Auto
+                                    </button>
+                                    <button
                                         onClick={exportToExcelTraceableCSV}
                                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
                                         title="Export with formula documentation for Excel - shows exact calculations and cost hierarchy references"
                                     >
-                                        <Icons.Chart /> Excel Traceable
+                                        <Icons.Chart /> Excel Docs
                                     </button>
                                     <button
                                         onClick={exportToJSON}
@@ -7661,7 +7772,7 @@
                                                                 <td>{stats.useCases.length}</td>
                                                                 <td>{Math.round(stats.volume).toLocaleString()}</td>
                                                                 <td className="font-bold text-green-600">{`$${Math.round(stats.savings).toLocaleString()}`}</td>
-                                                                <td>{`$${channelCosts[channel]}`}</td>
+                                                                <td>{`$${typeof channelCosts[channel] === 'object' ? channelCosts[channel].value : channelCosts[channel]}`}</td>
                                                                 <td>{avgImprovement.toFixed(1)}%</td>
                                                                 <td>{(() => {
                                                                     if (totalSavingsAll <= 0) return '0%';
