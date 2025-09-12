@@ -487,12 +487,12 @@
         
         // SINGLE SOURCE OF TRUTH FOR ALL CHANNELS
         const ALL_CHANNELS = [
-            { id: 'phone', label: 'Phone', defaultCost: 6.00 },
-            { id: 'chat', label: 'Chat', defaultCost: 2.50 },
-            { id: 'email', label: 'Email', defaultCost: 4.00 },
-            { id: 'sms', label: 'SMS', defaultCost: 1.50 },
-            { id: 'social', label: 'Social', defaultCost: 3.00 },
-            { id: 'bot', label: 'Bot', defaultCost: 0.50 }
+            { id: 'phone', label: 'Phone', defaultCost: 6.00, defaultAHT: 10 },
+            { id: 'chat', label: 'Chat', defaultCost: 2.50, defaultAHT: 8 },
+            { id: 'email', label: 'Email', defaultCost: 4.00, defaultAHT: 12 },
+            { id: 'sms', label: 'SMS', defaultCost: 1.50, defaultAHT: 3 },
+            { id: 'social', label: 'Social', defaultCost: 3.00, defaultAHT: 5 },
+            { id: 'bot', label: 'Bot', defaultCost: 0.50, defaultAHT: 2 }
         ];
         
         // Simple SVG icons as components
@@ -878,7 +878,16 @@
                         const parsed = JSON.parse(savedData);
                         return {
                             channelCosts: parsed.channelCosts || ALL_CHANNELS.reduce((acc, ch) => {
-                                acc[ch.id] = ch.defaultCost;
+                                // Support both old format (number) and new format (object)
+                                if (typeof parsed.channelCosts?.[ch.id] === 'object') {
+                                    acc[ch.id] = parsed.channelCosts[ch.id];
+                                } else {
+                                    acc[ch.id] = {
+                                        costType: 'perContact',
+                                        value: parsed.channelCosts?.[ch.id] || ch.defaultCost,
+                                        ahtMinutes: ch.defaultAHT
+                                    };
+                                }
                                 return acc;
                             }, {}),
                             // Add AHT minutes support; if missing in stored data, UI will fall back to defaultAHT
@@ -958,7 +967,11 @@
                 // Return sensible defaults with example data
                 return {
                     channelCosts: ALL_CHANNELS.reduce((acc, ch) => {
-                        acc[ch.id] = ch.defaultCost;
+                        acc[ch.id] = {
+                            costType: 'perContact',
+                            value: ch.defaultCost,
+                            ahtMinutes: ch.defaultAHT
+                        };
                         return acc;
                     }, {}),
                     categoryCosts: {
@@ -1226,7 +1239,7 @@
 
             // Calculate cost based on category-channel hierarchy and special group
             const getEffectiveCost = (useCase, channel) => {
-                // Priority: Category-Channel-SpecialGroup > Category-Channel > Category Default > Channel Default
+                // Priority: Category-Channel-SpecialGroup > Category-Channel > Channel Default
                 
                 // Get category data
                 if (categoryCosts[useCase.category]) {
@@ -1257,9 +1270,9 @@
                         return specialGroupCost.value * aht / 60 * utilizationFactor;
                     }
                     
-                    // 2. Category-Channel specific cost
+                    // 2. Category-Channel specific cost (no more category defaults)
                     if (categoryData[channel] && typeof categoryData[channel] === 'object') {
-                        const channelSpecificCost = categoryData[channel]._default || categoryData[channel];
+                        const channelSpecificCost = categoryData[channel];
                         if (channelSpecificCost && channelSpecificCost.costType) {
                             if (channelSpecificCost.costType === 'perContact') {
                                 return channelSpecificCost.value;
@@ -1270,22 +1283,21 @@
                             return channelSpecificCost.value * aht / 60 * utilizationFactor;
                         }
                     }
-                    
-                    // 3. Category default (new structure _default or old structure fallback)
-                    const defaultCost = categoryData._default || categoryData;
-                    if (defaultCost && defaultCost.costType) {
-                        if (defaultCost.costType === 'perContact') {
-                            return defaultCost.value;
-                        }
-                        // For hourly, convert to per-contact using AHT
-                        const aht = defaultCost.ahtMinutes || getApplicableAHT(useCase);
-                        const utilizationFactor = agentUtilization > 0 ? (100 / agentUtilization) : 1;
-                        return defaultCost.value * aht / 60 * utilizationFactor;
-                    }
                 }
                 
-                // 4. Channel default (lowest priority)
-                return channelCosts[channel] || 0;
+                // 3. Channel default (lowest priority)
+                const channelDefault = channelCosts[channel];
+                if (channelDefault && typeof channelDefault === 'object') {
+                    if (channelDefault.costType === 'perContact') {
+                        return channelDefault.value || 0;
+                    }
+                    // Convert hourly to per-contact using channel default AHT
+                    const aht = channelDefault.ahtMinutes || defaultAHT || 10;
+                    const utilizationFactor = agentUtilization > 0 ? (100 / agentUtilization) : 1;
+                    return (channelDefault.value * aht / 60) * utilizationFactor;
+                }
+                // Backward compatibility for old format (plain number)
+                return channelDefault || 0;
             };
             
             // Get the cost source description for transparency
@@ -1574,11 +1586,15 @@
                     const pct = Math.max(0, Math.min(100, netImprovement));
                     return volume * (pct / 100) * valuePerPoint;
                     
-                } else if (benefit.metric.includes('FCR Improvement')) {
-                    // Value-based calculation
-                    const valuePerPercent = metricValues.fcrImprovement?.value || 15;
+                } else if (benefit.metric.includes('FCR Improvement') || benefit.metric.includes('First Call Resolution')) {
+                    // Cost-based calculation - FCR improvement reduces repeat calls
+                    // If FCR improves by 10%, that's 10% fewer repeat calls
+                    let effectiveCost = getEffectiveCost(useCase, useCase.channel);
                     const pct = Math.max(0, Math.min(100, netImprovement));
-                    return volume * (pct / 100) * valuePerPercent;
+                    // Assuming repeat calls are typically 20-30% of volume, FCR improvement prevents these
+                    // More accurate would be: volume * repeatCallRate * (FCR improvement %) * cost
+                    // But for simplicity, treating it like deflection rate
+                    return volume * (pct / 100) * effectiveCost;
                     
                 } else if (benefit.metric.includes('Conversion Rate')) {
                     // Value-based calculation
@@ -3227,7 +3243,7 @@
                 // Quality-based metrics
                 csv += `Quality Improvement,NPS Improvement (points),"Volume × NPS_Points_Improved × Value_per_NPS_Point","1000 × 2 points × $${metricValues.npsImprovement?.value || 50} = $${(1000 * 2 * (metricValues.npsImprovement?.value || 50)).toLocaleString()}",Quality Improvement\n`;
                 csv += `Quality Improvement,CSAT Improvement (%),"Volume × (CSAT% - Baseline%) × Value_per_CSAT_Point","1000 × (85% - 75%) × $${metricValues.csatImprovement?.value || 25} = $${(1000 * 0.1 * (metricValues.csatImprovement?.value || 25)).toLocaleString()}",Quality Improvement\n`;
-                csv += `Quality Improvement,FCR Improvement (%),"Volume × (FCR% - Baseline%) × Value_per_FCR_Point","1000 × (90% - 80%) × $${metricValues.fcrImprovement?.value || 15} = $${(1000 * 0.1 * (metricValues.fcrImprovement?.value || 15)).toLocaleString()}",Quality Improvement\n`;
+                csv += `Cost Savings,FCR Improvement (%),"Volume × (FCR% - Baseline%) × Cost_per_Contact","1000 × (90% - 80%) × $6 = $600",Cost Savings (Avoided Repeat Calls)\n`;
                 
                 // Revenue-based metrics
                 csv += `Revenue Generation,Conversion Rate (%),"Volume × (Conversion% - Baseline%) × Average_Deal_Value","1000 × (15% - 10%) × $${metricValues.conversionRate?.value || 200} = $${(1000 * 0.05 * (metricValues.conversionRate?.value || 200)).toLocaleString()}",Revenue Generation\n`;
@@ -3522,7 +3538,7 @@
                     // Quality-based metrics
                     csv += `Quality Improvement,NPS Improvement (points),"Volume × Points_Improved × $${metricValues.npsImprovement?.value || 50}","Customer loyalty and satisfaction value"\n`;
                     csv += `Quality Improvement,CSAT Improvement (%),"Volume × (CSAT% - Baseline%) × $${metricValues.csatImprovement?.value || 25}","Customer satisfaction score improvements"\n`;
-                    csv += `Quality Improvement,FCR Improvement (%),"Volume × (FCR% - Baseline%) × $${metricValues.fcrImprovement?.value || 15}","First call resolution rate improvements"\n`;
+                    csv += `Cost Savings,FCR Improvement (%),"Volume × (FCR% - Baseline%) × Cost_per_Contact","Avoided repeat calls from improved first call resolution"\n`;
                     
                     // Revenue and other metrics
                     csv += `Revenue Generation,Conversion Rate (%),"Volume × (Rate% - Baseline%) × $${metricValues.conversionRate?.value || 200}","Average deal value from improved conversions"\n`;
@@ -4342,9 +4358,20 @@
                 
                 // Channel Costs
                 csv += '\n=== CHANNEL DEFAULT COSTS ===\n';
-                csv += 'Channel,Cost per Contact (USD),Priority Level,Notes\n';
-                Object.entries(channelCosts).forEach(([channel, cost]) => {
-                    csv += `${channel},${cost},4 (Lowest),Base cost when no category overrides exist\n`;
+                csv += 'Channel,Cost Type,Value (USD),AHT (min),Effective $/Contact,Priority Level,Calculation Formula\n';
+                Object.entries(channelCosts).forEach(([channel, costData]) => {
+                    const normalized = typeof costData === 'object' ? costData : { costType: 'perContact', value: costData, ahtMinutes: defaultAHT };
+                    let effectiveCost = normalized.value;
+                    let formula = 'Direct per-contact cost';
+                    
+                    if (normalized.costType === 'hourly') {
+                        const aht = normalized.ahtMinutes || defaultAHT;
+                        const utilization = agentUtilization || 100;
+                        effectiveCost = (normalized.value * aht / 60) * (100 / utilization);
+                        formula = `(Hourly_Rate × AHT_Minutes / 60) × (100 / Agent_Utilization%)`;
+                    }
+                    
+                    csv += `${channel},${normalized.costType === 'hourly' ? 'Hourly' : 'Per Contact'},${normalized.value},${normalized.ahtMinutes || defaultAHT},${effectiveCost.toFixed(2)},4 (Lowest),"${formula}"\n`;
                 });
                 
                 // Category Costs with detailed hierarchy
@@ -4764,25 +4791,89 @@
                                 {/* Channel Costs */}
                                 <div className="settings-section">
                                     <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                        <Icons.Dollar /> Channel Default Costs ($ per contact)
+                                        <Icons.Dollar /> Channel Default Costs
                                     </h3>
-                                    <div className="settings-grid">
+                                    <div className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded">
+                                        <strong>💡 Channel Defaults:</strong> Set base costs for each channel. These are used when no category-specific costs are defined.
+                                        Can be set as per-contact or hourly rates. Hourly rates are converted using AHT and agent utilization.
+                                    </div>
+                                    <div className="space-y-3">
                                         {ALL_CHANNELS.map((channelConfig) => {
-                                            const cost = channelCosts[channelConfig.id] || channelConfig.defaultCost;
+                                            const channelCost = channelCosts[channelConfig.id] || {
+                                                costType: 'perContact',
+                                                value: channelConfig.defaultCost,
+                                                ahtMinutes: channelConfig.defaultAHT
+                                            };
+                                            // Handle old format (plain number)
+                                            const normalizedCost = typeof channelCost === 'object' ? channelCost : {
+                                                costType: 'perContact',
+                                                value: channelCost,
+                                                ahtMinutes: channelConfig.defaultAHT
+                                            };
+                                            
                                             return (
-                                                <div key={channelConfig.id} className="settings-item">
-                                                    <label className="settings-label">{channelConfig.label}</label>
-                                                    <input
-                                                        type="number"
-                                                        value={cost}
-                                                        onChange={(e) => setChannelCosts({
-                                                            ...channelCosts,
-                                                            [channelConfig.id]: parseFloat(e.target.value) || 0
-                                                        })}
-                                                        className="settings-input"
-                                                        step="0.01"
-                                                        placeholder={`Default: $${channelConfig.defaultCost}`}
-                                                    />
+                                                <div key={channelConfig.id} className="flex items-center gap-3 p-3 bg-white rounded border">
+                                                    <span className="w-20 font-medium text-sm">{channelConfig.label}:</span>
+                                                    
+                                                    <div className="cost-type-toggle">
+                                                        <button
+                                                            onClick={() => setChannelCosts({
+                                                                ...channelCosts,
+                                                                [channelConfig.id]: { ...normalizedCost, costType: 'perContact' }
+                                                            })}
+                                                            className={`cost-type-btn ${normalizedCost.costType === 'perContact' ? 'cost-type-btn-active' : 'cost-type-btn-inactive'}`}
+                                                        >
+                                                            Per Contact
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setChannelCosts({
+                                                                ...channelCosts,
+                                                                [channelConfig.id]: { ...normalizedCost, costType: 'hourly' }
+                                                            })}
+                                                            className={`cost-type-btn ${normalizedCost.costType === 'hourly' ? 'cost-type-btn-active' : 'cost-type-btn-inactive'}`}
+                                                        >
+                                                            Hourly
+                                                        </button>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-2">
+                                                        <label className="text-xs font-medium text-blue-600">💰 Cost:</label>
+                                                        <input
+                                                            type="number"
+                                                            value={normalizedCost.value || 0}
+                                                            onChange={(e) => setChannelCosts({
+                                                                ...channelCosts,
+                                                                [channelConfig.id]: { ...normalizedCost, value: parseFloat(e.target.value) || 0 }
+                                                            })}
+                                                            className="settings-input w-24"
+                                                            step="0.01"
+                                                            placeholder="0.00"
+                                                        />
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-2">
+                                                        <label className="text-xs font-medium text-green-600">⏱️ AHT (min):</label>
+                                                        <input
+                                                            type="number"
+                                                            value={normalizedCost.ahtMinutes || channelConfig.defaultAHT}
+                                                            onChange={(e) => setChannelCosts({
+                                                                ...channelCosts,
+                                                                [channelConfig.id]: { ...normalizedCost, ahtMinutes: Math.max(0, parseFloat(e.target.value) || 0) }
+                                                            })}
+                                                            className="settings-input w-20"
+                                                            step="0.1"
+                                                            placeholder="AHT"
+                                                        />
+                                                    </div>
+                                                    
+                                                    <span className="text-sm text-gray-500">
+                                                        ${normalizedCost.value || 0} {normalizedCost.costType === 'hourly' ? '/hr' : '/contact'}
+                                                        {normalizedCost.costType === 'hourly' && (
+                                                            <span className="text-xs ml-2">
+                                                                (≈ ${((normalizedCost.value || 0) * (normalizedCost.ahtMinutes || channelConfig.defaultAHT) / 60 * (100 / (agentUtilization || 100))).toFixed(2)}/contact)
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                 </div>
                                             );
                                         })}
@@ -4824,85 +4915,21 @@
                                                     <div key={category} className="border rounded-lg p-4 bg-gray-50">
                                                         <h4 className="font-semibold text-lg mb-3">{category}</h4>
                                                         
-                                                        {/* Default Cost Row */}
-                                                        <div className="mb-4 p-3 bg-white rounded border">
-                                                            <div className="flex items-center gap-3 mb-2">
-                                                                <span className="font-medium text-sm text-gray-600">Default Cost (fallback):</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="cost-type-toggle">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const newDefault = { ...defaultCost, costType: 'perContact' };
-                                                                            setCategoryCosts({
-                                                                                ...categoryCosts,
-                                                                                [category]: isNewFormat ? { ...categoryData, _default: newDefault } : newDefault
-                                                                            });
-                                                                        }}
-                                                                        className={`cost-type-btn ${defaultCost.costType === 'perContact' ? 'cost-type-btn-active' : 'cost-type-btn-inactive'}`}
-                                                                    >
-                                                                        Per Contact
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const newDefault = { ...defaultCost, costType: 'hourly' };
-                                                                            setCategoryCosts({
-                                                                                ...categoryCosts,
-                                                                                [category]: isNewFormat ? { ...categoryData, _default: newDefault } : newDefault
-                                                                            });
-                                                                        }}
-                                                                        className={`cost-type-btn ${defaultCost.costType === 'hourly' ? 'cost-type-btn-active' : 'cost-type-btn-inactive'}`}
-                                                                    >
-                                                                        Hourly
-                                                                    </button>
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <label className="settings-label text-xs font-medium text-blue-600">💰 Cost Value:</label>
-                                                                    <input
-                                                                        type="number"
-                                                                        value={defaultCost.value || 0}
-                                                                        onChange={(e) => {
-                                                                            const newDefault = { ...defaultCost, value: parseFloat(e.target.value) || 0 };
-                                                                            setCategoryCosts({
-                                                                                ...categoryCosts,
-                                                                                [category]: isNewFormat ? { ...categoryData, _default: newDefault } : newDefault
-                                                                            });
-                                                                        }}
-                                                                        className="settings-input w-24"
-                                                                        step="0.01"
-                                                                        placeholder="0.00"
-                                                                    />
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <label className="settings-label text-xs font-medium text-green-600">⏱️ AHT (min):</label>
-                                                                    <input
-                                                                        type="number"
-                                                                        value={typeof defaultCost.ahtMinutes === 'number' ? defaultCost.ahtMinutes : defaultAHT}
-                                                                        onChange={(e) => {
-                                                                            const newDefault = { ...defaultCost, ahtMinutes: Math.max(0, parseFloat(e.target.value) || 0) };
-                                                                            setCategoryCosts({
-                                                                                ...categoryCosts,
-                                                                                [category]: isNewFormat ? { ...categoryData, _default: newDefault } : newDefault
-                                                                            });
-                                                                        }}
-                                                                        className="settings-input w-20"
-                                                                        step="0.1"
-                                                                        placeholder="0.0"
-                                                                    />
-                                                                </div>
-                                                                <span className="text-sm text-gray-500">
-                                                                    ${defaultCost.value || 0} {defaultCost.costType === 'hourly' ? '/hr' : '/contact'}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {/* Channel-Specific Costs */}
+                                                        {/* Channel-Specific Costs - Now Required for Each Category */}
                                                         <div className="space-y-2">
-                                                            <h5 className="font-medium text-sm text-gray-700">Channel-Specific Overrides:</h5>
+                                                            <h5 className="font-medium text-sm text-gray-700">Channel Costs for {category}:</h5>
                                                             {channels.map(channel => {
-                                                                const channelCost = isNewFormat ? categoryData[channel] : null;
-                                                                const hasChannelCost = channelCost && typeof channelCost === 'object';
+                                                                // Get channel cost or use channel defaults
+                                                                const channelSpecificData = categoryData[channel];
+                                                                const channelDefaultData = channelCosts[channel] || { costType: 'perContact', value: 0, ahtMinutes: 10 };
+                                                                
+                                                                // Use category-channel cost if exists, otherwise use channel defaults
+                                                                const channelCost = (channelSpecificData && typeof channelSpecificData === 'object') 
+                                                                    ? channelSpecificData 
+                                                                    : channelDefaultData;
+                                                                    
                                                                 const hasUseCases = useCases.some(uc => uc.channel === channel && uc.category === category);
+                                                                const isOverride = channelSpecificData && typeof channelSpecificData === 'object';
                                                                 
                                                                 return (
                                                                     <div key={channel} className="flex items-center gap-3 p-2 bg-white rounded border">
@@ -4910,7 +4937,7 @@
                                                                             {getChannelConfig(channel).label}{hasUseCases ? ' ✓' : ''}:
                                                                         </span>
                                                                         
-                                                                        {hasChannelCost ? (
+                                                                        {(
                                                                             <>
                                                                                 <div className="cost-type-toggle">
                                                                                     <button
@@ -4950,7 +4977,7 @@
                                                                                     <span className="text-xs text-green-600 font-medium">⏱️</span>
                                                                                     <input
                                                                                         type="number"
-                                                                                        value={typeof channelCost.ahtMinutes === 'number' ? channelCost.ahtMinutes : defaultCost.ahtMinutes || defaultAHT}
+                                                                                        value={typeof channelCost.ahtMinutes === 'number' ? channelCost.ahtMinutes : (channelDefaultData.ahtMinutes || defaultAHT)}
                                                                                         onChange={(e) => setCategoryCosts({
                                                                                             ...categoryCosts,
                                                                                             [category]: { ...categoryData, [channel]: { ...channelCost, ahtMinutes: Math.max(0, parseFloat(e.target.value) || 0) } }
@@ -5126,20 +5153,6 @@
                                                                                         </button>
                                                                                     </div>
                                                                                 </div>
-                                                                            </>
-                                                                        ) : (
-                                                                            <>
-                                                                                <span className="text-sm text-gray-500 italic">Uses default cost</span>
-                                                                                <button
-                                                                                    onClick={() => addChannelCostToCategory(category, channel, {
-                                                                                        costType: 'perContact',
-                                                                                        value: defaultCost.value || 0,
-                                                                                        ahtMinutes: defaultCost.ahtMinutes || defaultAHT
-                                                                                    })}
-                                                                                    className="px-2 py-1 text-xs bg-green-100 text-green-600 rounded hover:bg-green-200"
-                                                                                >
-                                                                                    Add Override
-                                                                                </button>
                                                                             </>
                                                                         )}
                                                                     </div>
