@@ -924,8 +924,25 @@
             // Initialize with reasonable defaults
             const generateMonthsFromRange = (startDate, endDate) => {
                 const months = [];
-                const current = new Date(startDate);
-                const end = new Date(endDate);
+                
+                // Handle invalid or empty dates
+                if (!startDate || !endDate) {
+                    return months;
+                }
+                
+                // Parse the date strings (format: "YYYY-MM")
+                const [startYear, startMonth] = startDate.split('-').map(Number);
+                const [endYear, endMonth] = endDate.split('-').map(Number);
+                
+                // Create dates using local date constructor to avoid timezone issues
+                // Set to first day of month at noon to avoid DST issues
+                let current = new Date(startYear, startMonth - 1, 1, 12, 0, 0);
+                let end = new Date(endYear, endMonth - 1, 1, 12, 0, 0);
+                
+                // Swap if dates are in wrong order
+                if (current > end) {
+                    [current, end] = [end, current];
+                }
                 
                 while (current <= end) {
                     months.push({
@@ -933,6 +950,7 @@
                         year: current.getFullYear(),
                         month: current.toLocaleString('default', { month: 'short' })
                     });
+                    // Move to next month
                     current.setMonth(current.getMonth() + 1);
                 }
                 return months;
@@ -3747,8 +3765,8 @@
                                 ? `volume_${benefit.metric}`
                                 : `volume_${benefitIndex}_${benefit.metric}`;
                             const volumeLabel = getVolumeLabel(benefit.metric);
-                            const volume = monthData[volumeFieldKey] || monthData.volume || 0; // Fallback to general volume
-                            const improvement = monthData[improvementFieldKey] || 0;
+                            const volume = parseFloat(monthData[volumeFieldKey] || monthData.volume) || 0; // Fallback to general volume
+                            const improvement = parseFloat(monthData[improvementFieldKey]) || 0;
                             const netImprovement = Math.max(0, improvement - benefit.baselineValue);
                             csv += `"${uc.name}",${month.month} ${month.year},${benefitIndex + 1},"${benefit.metric}",${unit},"${volumeLabel}",${volume},${improvement},${benefit.baselineValue},${netImprovement}\n`;
                         });

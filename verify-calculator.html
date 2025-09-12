@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator Verification Results</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background: #f5f5f5;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .pass { 
+            color: #28a745; 
+            font-weight: bold;
+        }
+        .fail { 
+            color: #dc3545; 
+            font-weight: bold;
+        }
+        .warn { 
+            color: #ffc107; 
+            font-weight: bold;
+        }
+        .info { 
+            color: #17a2b8; 
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        h2 { 
+            color: #007bff;
+            margin-top: 0;
+        }
+        pre { 
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .summary {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #f8f9fa;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Calculator Verification Results</h1>
+    <div id="loading" class="loading">Loading calculator and running tests...</div>
+    <div id="results" style="display: none;"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        const loading = document.getElementById('loading');
+        let testResults = [];
+        
+        function addResult(test, status, message) {
+            testResults.push({ test, status, message });
+            const div = document.createElement('div');
+            div.className = status;
+            div.innerHTML = `${status === 'pass' ? '✅' : status === 'fail' ? '❌' : '⚠️'} ${test}: ${message}`;
+            results.appendChild(div);
+        }
+        
+        function addSection(title) {
+            const section = document.createElement('div');
+            section.className = 'test-section';
+            section.innerHTML = `<h2>${title}</h2>`;
+            results.appendChild(section);
+            return section;
+        }
+        
+        function runTests() {
+            // Load calculator in iframe
+            const iframe = document.createElement('iframe');
+            iframe.src = 'calculator.html';
+            iframe.style.width = '100%';
+            iframe.style.height = '0';
+            iframe.style.border = 'none';
+            document.body.appendChild(iframe);
+            
+            iframe.onload = () => {
+                loading.style.display = 'none';
+                results.style.display = 'block';
+                
+                const win = iframe.contentWindow;
+                
+                // TEST 1: Function Availability
+                const section1 = addSection('TEST 1: Core Functions Availability');
+                const requiredFunctions = {
+                    'calculateSavings': 'Main calculation function',
+                    'calculateSavingsBreakdown': 'Detailed breakdown function',
+                    'calculateTotalSavings': 'Total aggregation function',
+                    'getEffectiveCost': 'Cost hierarchy function',
+                    'getVolumeLabel': 'Volume type labeling',
+                    'ensureUseCaseHasBenefits': 'Backward compatibility',
+                    'migrateUseCaseBenefitKeys': 'Data migration on edit'
+                };
+                
+                let functionsFound = 0;
+                Object.entries(requiredFunctions).forEach(([fn, desc]) => {
+                    const exists = typeof win[fn] === 'function';
+                    if (exists) functionsFound++;
+                    
+                    const row = document.createElement('div');
+                    row.className = exists ? 'pass' : 'fail';
+                    row.textContent = `${exists ? '✅' : '❌'} ${fn}: ${desc} - ${exists ? 'FOUND' : 'MISSING'}`;
+                    section1.appendChild(row);
+                });
+                
+                section1.innerHTML += `<div class="summary">Functions found: ${functionsFound}/${Object.keys(requiredFunctions).length}</div>`;
+                
+                // TEST 2: Data Structure Check
+                const section2 = addSection('TEST 2: Data Structure Verification');
+                
+                if (win.useCases && Array.isArray(win.useCases)) {
+                    section2.innerHTML += `<div class="info">📋 Found ${win.useCases.length} use case(s)</div>`;
+                    
+                    if (win.useCases.length > 0) {
+                        const uc = win.useCases[0];
+                        const table = document.createElement('table');
+                        table.innerHTML = `
+                            <tr><th>Property</th><th>Value</th><th>Status</th></tr>
+                            <tr>
+                                <td>Name</td>
+                                <td>${uc.name || 'N/A'}</td>
+                                <td class="${uc.name ? 'pass' : 'warn'}">
+                                    ${uc.name ? '✅' : '⚠️'}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Category</td>
+                                <td>${uc.category || 'N/A'}</td>
+                                <td class="${uc.category ? 'pass' : 'warn'}">
+                                    ${uc.category ? '✅' : '⚠️'}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Channel</td>
+                                <td>${uc.channel || 'N/A'}</td>
+                                <td class="${uc.channel ? 'pass' : 'warn'}">
+                                    ${uc.channel ? '✅' : '⚠️'}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Benefits Count</td>
+                                <td>${uc.benefits ? uc.benefits.length : 0}</td>
+                                <td class="${uc.benefits && uc.benefits.length > 0 ? 'pass' : 'warn'}">
+                                    ${uc.benefits && uc.benefits.length > 0 ? '✅' : '⚠️'}
+                                </td>
+                            </tr>
+                        `;
+                        section2.appendChild(table);
+                        
+                        // Check volume fields
+                        if (uc.data && Object.keys(uc.data).length > 0) {
+                            const monthId = Object.keys(uc.data)[0];
+                            const monthData = uc.data[monthId];
+                            const volumeFields = Object.keys(monthData).filter(k => k.includes('volume'));
+                            const improvementFields = Object.keys(monthData).filter(k => k.includes('improvement'));
+                            
+                            section2.innerHTML += '<div class="info"><strong>Data Fields Found:</strong></div>';
+                            section2.innerHTML += `<pre>Volume fields: ${volumeFields.join(', ') || 'None'}
+Improvement fields: ${improvementFields.join(', ') || 'None'}</pre>`;
+                            
+                            // Verify field naming convention
+                            if (uc.benefits && uc.benefits.length > 0) {
+                                const expectedFields = [];
+                                uc.benefits.forEach((b, idx) => {
+                                    if (uc.benefits.length === 1) {
+                                        expectedFields.push(`volume_${b.metric}`);
+                                        expectedFields.push(`improvement_${b.metric}`);
+                                    } else {
+                                        expectedFields.push(`volume_${idx}_${b.metric}`);
+                                        expectedFields.push(`improvement_${idx}_${b.metric}`);
+                                    }
+                                });
+                                
+                                section2.innerHTML += '<div class="info"><strong>Expected vs Actual Fields:</strong></div>';
+                                const fieldTable = document.createElement('table');
+                                fieldTable.innerHTML = '<tr><th>Expected Field</th><th>Found?</th></tr>';
+                                expectedFields.forEach(field => {
+                                    const found = monthData[field] !== undefined;
+                                    fieldTable.innerHTML += `
+                                        <tr>
+                                            <td>${field}</td>
+                                            <td class="${found ? 'pass' : 'fail'}">${found ? '✅ Yes' : '❌ No'}</td>
+                                        </tr>
+                                    `;
+                                });
+                                section2.appendChild(fieldTable);
+                            }
+                        } else {
+                            section2.innerHTML += '<div class="warn">⚠️ No data entered yet for testing</div>';
+                        }
+                    }
+                } else {
+                    section2.innerHTML += '<div class="fail">❌ No use cases found</div>';
+                }
+                
+                // TEST 3: Volume Label Function
+                const section3 = addSection('TEST 3: Volume Label Mapping');
+                
+                if (win.getVolumeLabel) {
+                    const labelTests = [
+                        { metric: 'Deflection Rate (%)', expected: 'Contacts' },
+                        { metric: 'AHT Reduction (min)', expected: 'Contacts' },
+                        { metric: 'NPS Improvement (points)', expected: 'Surveys' },
+                        { metric: 'CSAT Improvement (%)', expected: 'CSAT Cases' },
+                        { metric: 'Agent Retention (%)', expected: 'Agents' },
+                        { metric: 'Conversion Rate (%)', expected: 'Opportunities' },
+                        { metric: 'Compliance Rate (%)', expected: 'Audits' }
+                    ];
+                    
+                    const labelTable = document.createElement('table');
+                    labelTable.innerHTML = '<tr><th>Metric</th><th>Expected</th><th>Actual</th><th>Result</th></tr>';
+                    
+                    let correct = 0;
+                    labelTests.forEach(test => {
+                        const actual = win.getVolumeLabel(test.metric);
+                        const isCorrect = actual === test.expected;
+                        if (isCorrect) correct++;
+                        
+                        labelTable.innerHTML += `
+                            <tr>
+                                <td>${test.metric}</td>
+                                <td>${test.expected}</td>
+                                <td>${actual}</td>
+                                <td class="${isCorrect ? 'pass' : 'fail'}">
+                                    ${isCorrect ? '✅ Correct' : '❌ Wrong'}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    section3.appendChild(labelTable);
+                    section3.innerHTML += `<div class="summary">Correct labels: ${correct}/${labelTests.length}</div>`;
+                }
+                
+                // TEST 4: Cost Hierarchy
+                const section4 = addSection('TEST 4: Cost Hierarchy Verification');
+                
+                if (win.getEffectiveCost && win.channelCosts) {
+                    section4.innerHTML += '<div class="info"><strong>Testing cost priority: Special Group > Category > Channel</strong></div>';
+                    
+                    const costTable = document.createElement('table');
+                    costTable.innerHTML = '<tr><th>Configuration</th><th>Calculated Cost</th><th>Source</th></tr>';
+                    
+                    // Test scenarios
+                    const testCases = [
+                        { 
+                            uc: { channel: 'phone', category: 'Pre-Sales', specialGroup: null },
+                            desc: 'Phone + Pre-Sales (no special group)'
+                        },
+                        { 
+                            uc: { channel: 'phone', category: 'Pre-Sales', specialGroup: 'Tier 1' },
+                            desc: 'Phone + Pre-Sales + Tier 1'
+                        },
+                        { 
+                            uc: { channel: 'chat', category: 'Order Support', specialGroup: null },
+                            desc: 'Chat + Order Support (no special group)'
+                        }
+                    ];
+                    
+                    testCases.forEach(test => {
+                        const cost = win.getEffectiveCost(test.uc, test.uc.channel);
+                        let source = 'Unknown';
+                        
+                        if (test.uc.specialGroup && win.specialGroups && win.specialGroups[test.uc.specialGroup]) {
+                            source = 'Special Group';
+                        } else if (win.categoryCosts && win.categoryCosts[test.uc.category]) {
+                            source = 'Category Override';
+                        } else {
+                            source = 'Channel Default';
+                        }
+                        
+                        costTable.innerHTML += `
+                            <tr>
+                                <td>${test.desc}</td>
+                                <td>$${cost.toFixed(2)}/contact</td>
+                                <td>${source}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    section4.appendChild(costTable);
+                }
+                
+                // TEST 5: Calculation Test
+                const section5 = addSection('TEST 5: Calculation Engine');
+                
+                if (win.calculateSavings && win.useCases && win.useCases.length > 0 && win.months && win.months.length > 0) {
+                    const uc = win.useCases[0];
+                    const monthId = win.months[0].id;
+                    
+                    try {
+                        const savings = win.calculateSavings(uc, monthId);
+                        section5.innerHTML += `<div class="pass">✅ calculateSavings executed successfully</div>`;
+                        section5.innerHTML += `<div class="info">Result for "${uc.name}" in ${win.months[0].month} ${win.months[0].year}: $${savings.toFixed(2)}</div>`;
+                        
+                        if (win.calculateSavingsBreakdown) {
+                            const breakdown = win.calculateSavingsBreakdown(uc, monthId);
+                            section5.innerHTML += '<div class="info"><strong>Breakdown by benefit:</strong></div>';
+                            
+                            const breakdownTable = document.createElement('table');
+                            breakdownTable.innerHTML = '<tr><th>Benefit</th><th>Savings</th><th>Percentage</th></tr>';
+                            
+                            breakdown.breakdown.forEach(item => {
+                                breakdownTable.innerHTML += `
+                                    <tr>
+                                        <td>${item.metric}</td>
+                                        <td>$${item.savings.toFixed(2)}</td>
+                                        <td>${item.percentage.toFixed(1)}%</td>
+                                    </tr>
+                                `;
+                            });
+                            
+                            section5.appendChild(breakdownTable);
+                            section5.innerHTML += `<div class="summary">Total: $${breakdown.total.toFixed(2)}</div>`;
+                        }
+                    } catch (error) {
+                        section5.innerHTML += `<div class="fail">❌ Calculation error: ${error.message}</div>`;
+                    }
+                } else {
+                    section5.innerHTML += '<div class="warn">⚠️ Cannot test calculations - missing data or functions</div>';
+                }
+                
+                // TEST 6: Total Savings
+                const section6 = addSection('TEST 6: Total Aggregation');
+                
+                if (win.calculateTotalSavings) {
+                    try {
+                        const total = win.calculateTotalSavings();
+                        section6.innerHTML += `<div class="pass">✅ Total savings calculated: $${total.toFixed(2)}</div>`;
+                        
+                        // Check if matches UI
+                        const uiTotal = iframe.contentDocument.querySelector('.text-3xl.font-bold.text-green-600');
+                        if (uiTotal) {
+                            const uiValue = uiTotal.textContent;
+                            section6.innerHTML += `<div class="info">UI displays: ${uiValue}</div>`;
+                        }
+                    } catch (error) {
+                        section6.innerHTML += `<div class="fail">❌ Total calculation error: ${error.message}</div>`;
+                    }
+                }
+                
+                // SUMMARY
+                const summary = addSection('📊 Test Summary');
+                const passCount = testResults.filter(r => r.status === 'pass').length;
+                const failCount = testResults.filter(r => r.status === 'fail').length;
+                const warnCount = testResults.filter(r => r.status === 'warn').length;
+                
+                summary.innerHTML = `
+                    <div class="summary">
+                        <h3>Overall Results:</h3>
+                        <div class="pass">✅ Passed: ${passCount} tests</div>
+                        <div class="fail">❌ Failed: ${failCount} tests</div>
+                        <div class="warn">⚠️ Warnings: ${warnCount} tests</div>
+                        
+                        <h3>Manual Testing Still Required:</h3>
+                        <ol>
+                            <li>Edit a use case → Change category/channel → Verify costs recalculate</li>
+                            <li>Bulk edit → Select multiple → Change category → Verify all update</li>
+                            <li>Export CSV → Verify formulas and values match UI</li>
+                            <li>Bulk fill with Adjust mode → Test +/- adjustments work</li>
+                            <li>Test gradual increase with different curve types</li>
+                        </ol>
+                    </div>
+                `;
+            };
+        }
+        
+        // Run tests when page loads
+        window.onload = runTests;
+    </script>
+</body>
+</html>
