@@ -152,6 +152,57 @@
             vertical-align: middle;
         }
         
+        /* Animated logo styles */
+        @keyframes pulse-glow {
+            0%, 100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+            }
+            50% {
+                transform: scale(1.05);
+                filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.8));
+            }
+        }
+        
+        @keyframes rotate-slow {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .logo-animated {
+            animation: pulse-glow 3s ease-in-out infinite;
+            display: inline-block;
+        }
+        
+        .logo-rotate {
+            animation: rotate-slow 20s linear infinite;
+        }
+        
+        @keyframes gradient-shift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+        
+        .title-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #667eea 75%, #764ba2 100%);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient-shift 5s ease infinite;
+        }
+        
         /* Tooltip styles */
         .tooltip {
             position: relative;
@@ -1119,6 +1170,7 @@
             const [bulkEditMode, setBulkEditMode] = useState(false);
             const [selectedUseCases, setSelectedUseCases] = useState(new Set());
             const [fillMode, setFillMode] = useState('constant'); // 'constant' or 'gradual'
+            const [curveType, setCurveType] = useState('linear'); // 'linear', 'exponential', 'scurve', 'logarithmic'
             const [undoStack, setUndoStack] = useState([]);
             const [redoStack, setRedoStack] = useState([]);
             const [unsavedChanges, setUnsavedChanges] = useState(new Set());
@@ -1709,6 +1761,62 @@
                 return ['Cost Savings', 'Quality Improvement', 'Revenue Generation', 'Cost Avoidance', 'Risk Reduction'];
             };
             
+            // Curve interpolation functions
+            const interpolateValue = (startVal, endVal, progress, curve) => {
+                const delta = endVal - startVal;
+                
+                switch (curve) {
+                    case 'linear':
+                        // Linear interpolation: steady growth
+                        return startVal + delta * progress;
+                        
+                    case 'exponential':
+                        // Exponential: slow start, rapid acceleration
+                        const expProgress = (Math.exp(progress * 2) - 1) / (Math.exp(2) - 1);
+                        return startVal + delta * expProgress;
+                        
+                    case 'scurve':
+                        // S-curve (sigmoid): slow start, rapid middle, slow end
+                        const sigmoid = 1 / (1 + Math.exp(-10 * (progress - 0.5)));
+                        return startVal + delta * sigmoid;
+                        
+                    case 'logarithmic':
+                        // Logarithmic: rapid start, slow later
+                        const logProgress = Math.log(1 + progress * 9) / Math.log(10);
+                        return startVal + delta * logProgress;
+                        
+                    case 'custom':
+                        // Custom curve based on milestone percentages
+                        const milestone3 = parseFloat(document.getElementById('custom-milestone-3')?.value || '25') / 100;
+                        const milestone6 = parseFloat(document.getElementById('custom-milestone-6')?.value || '50') / 100;
+                        const milestone9 = parseFloat(document.getElementById('custom-milestone-9')?.value || '75') / 100;
+                        
+                        // Map progress to custom milestones
+                        if (progress <= 0.25) {
+                            // 0-25% of time: interpolate to milestone3
+                            return startVal + delta * (milestone3 * (progress / 0.25));
+                        } else if (progress <= 0.5) {
+                            // 25-50% of time: interpolate from milestone3 to milestone6
+                            const localProgress = (progress - 0.25) / 0.25;
+                            const milestoneValue = milestone3 + (milestone6 - milestone3) * localProgress;
+                            return startVal + delta * milestoneValue;
+                        } else if (progress <= 0.75) {
+                            // 50-75% of time: interpolate from milestone6 to milestone9
+                            const localProgress = (progress - 0.5) / 0.25;
+                            const milestoneValue = milestone6 + (milestone9 - milestone6) * localProgress;
+                            return startVal + delta * milestoneValue;
+                        } else {
+                            // 75-100% of time: interpolate from milestone9 to 1
+                            const localProgress = (progress - 0.75) / 0.25;
+                            const milestoneValue = milestone9 + (1 - milestone9) * localProgress;
+                            return startVal + delta * milestoneValue;
+                        }
+                        
+                    default:
+                        return startVal + delta * progress;
+                }
+            };
+            
             // Helper function to get the appropriate volume label for a metric
             const getVolumeLabel = (metric) => {
                 if (metric.includes('Deflection') || metric.includes('Automation') || 
@@ -2287,8 +2395,12 @@
                     datasets: topUseCases.map((uc, index) => {
                         const data = filteredMonths.map(month => calculateSavings(uc, month.id));
                         const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+                        // Include category and special group in label
+                        const labelParts = [uc.name];
+                        if (uc.category) labelParts.push(`(${uc.category})`);
+                        if (uc.specialGroup) labelParts.push(`[${uc.specialGroup}]`);
                         return {
-                            label: uc.name,
+                            label: labelParts.join(' '),
                             data,
                             borderColor: colors[index % colors.length],
                             backgroundColor: colors[index % colors.length] + '20',
@@ -2711,7 +2823,11 @@
                             const filteredMonths = getFilteredMonths();
                             const useCaseData = useCases.map(uc => {
                                 const total = filteredMonths.reduce((sum, month) => sum + calculateSavings(uc, month.id), 0);
-                                return { name: uc.name, value: total };
+                                // Include category/group in display name
+                                let displayName = uc.name;
+                                if (uc.specialGroup) displayName += ` [${uc.specialGroup}]`;
+                                else if (uc.category) displayName += ` (${uc.category})`;
+                                return { name: displayName, value: total, originalName: uc.name };
                             }).sort((a, b) => b.value - a.value).slice(0, 10);
 
                             if (useCaseData.length > 0) {
@@ -5010,8 +5126,33 @@
                         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                             <div className="flex justify-between items-center mb-4">
                                 <div>
-                                    <h1 className="text-3xl font-bold text-gray-800">AI Contact Center ROI Calculator</h1>
-                                    <p className="text-gray-600 mt-2">Advanced cost modeling with category and group pricing</p>
+                                    <h1 className="text-3xl font-bold flex items-center gap-3">
+                                        <span className="logo-animated">
+                                            <svg width="40" height="40" viewBox="0 0 40 40" className="logo-rotate">
+                                                <defs>
+                                                    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                        <stop offset="0%" stopColor="#3B82F6" />
+                                                        <stop offset="50%" stopColor="#8B5CF6" />
+                                                        <stop offset="100%" stopColor="#EC4899" />
+                                                    </linearGradient>
+                                                </defs>
+                                                <circle cx="20" cy="20" r="18" fill="none" stroke="url(#logoGradient)" strokeWidth="2" strokeDasharray="5 2" />
+                                                <circle cx="20" cy="12" r="3" fill="url(#logoGradient)" />
+                                                <circle cx="13" cy="23" r="3" fill="url(#logoGradient)" />
+                                                <circle cx="27" cy="23" r="3" fill="url(#logoGradient)" />
+                                                <path d="M20 12 L13 23 L27 23 Z" fill="none" stroke="url(#logoGradient)" strokeWidth="1.5" />
+                                                <circle cx="20" cy="20" r="2" fill="url(#logoGradient)" opacity="0.8">
+                                                    <animate attributeName="r" values="2;4;2" dur="2s" repeatCount="indefinite" />
+                                                    <animate attributeName="opacity" values="0.8;0.3;0.8" dur="2s" repeatCount="indefinite" />
+                                                </circle>
+                                            </svg>
+                                        </span>
+                                        <span className="title-gradient">AI Contact Center ROI Calculator</span>
+                                    </h1>
+                                    <p className="text-gray-600 mt-2 flex items-center gap-2">
+                                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                        Advanced cost modeling with category and group pricing
+                                    </p>
                                     {showSaveIndicator && (
                                         <p className="text-green-600 text-sm mt-1 flex items-center gap-1">
                                             <Icons.Save /> Auto-saved
@@ -5880,6 +6021,127 @@
                                                         }
                                                     });
                                                     
+                                                    const handleApplyIndividualMetric = (metric, type, instances) => {
+                                                        const updatedUseCases = [...useCases];
+                                                        
+                                                        if (fillMode === 'constant' || fillMode === 'adjust') {
+                                                            // Constant or Adjust mode
+                                                            instances.forEach(({ucId, benefitIndex, fieldKey}) => {
+                                                                const ucIndex = updatedUseCases.findIndex(u => u.id === ucId);
+                                                                if (ucIndex >= 0) {
+                                                                    const uc = updatedUseCases[ucIndex];
+                                                                    const normalizedUC = ensureUseCaseHasBenefits(uc);
+                                                                    
+                                                                    // Apply volume if requested
+                                                                    if (type === 'volume' || type === 'both') {
+                                                                        const volumeInput = document.getElementById(`filldown-volume-${metric}`);
+                                                                        if (volumeInput && volumeInput.value) {
+                                                                            const volumeFieldKey = normalizedUC.benefits.length === 1 
+                                                                                ? `volume_${metric}`
+                                                                                : `volume_${benefitIndex}_${metric}`;
+                                                                            
+                                                                            const adjustment = parseFloat(volumeInput.value);
+                                                                            
+                                                                            months.forEach(month => {
+                                                                                if (!updatedUseCases[ucIndex].data[month.id]) {
+                                                                                    updatedUseCases[ucIndex].data[month.id] = {};
+                                                                                }
+                                                                                
+                                                                                if (fillMode === 'adjust') {
+                                                                                    // Add/subtract from existing value
+                                                                                    const currentValue = parseFloat(updatedUseCases[ucIndex].data[month.id][volumeFieldKey]) || 0;
+                                                                                    updatedUseCases[ucIndex].data[month.id][volumeFieldKey] = Math.max(0, currentValue + adjustment).toString();
+                                                                                } else {
+                                                                                    // Replace with new value
+                                                                                    updatedUseCases[ucIndex].data[month.id][volumeFieldKey] = volumeInput.value;
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                    
+                                                                    // Apply improvement if requested
+                                                                    if (type === 'improvement' || type === 'both') {
+                                                                        const improvementInput = document.getElementById(`filldown-${metric}`);
+                                                                        if (improvementInput && improvementInput.value) {
+                                                                            const adjustment = parseFloat(improvementInput.value);
+                                                                            
+                                                                            months.forEach(month => {
+                                                                                if (!updatedUseCases[ucIndex].data[month.id]) {
+                                                                                    updatedUseCases[ucIndex].data[month.id] = {};
+                                                                                }
+                                                                                
+                                                                                if (fillMode === 'adjust') {
+                                                                                    // Add/subtract from existing value
+                                                                                    const currentValue = parseFloat(updatedUseCases[ucIndex].data[month.id][fieldKey]) || 0;
+                                                                                    const newValue = currentValue + adjustment;
+                                                                                    updatedUseCases[ucIndex].data[month.id][fieldKey] = 
+                                                                                        metric.includes('min') ? newValue.toFixed(1) : newValue.toString();
+                                                                                } else {
+                                                                                    // Replace with new value
+                                                                                    updatedUseCases[ucIndex].data[month.id][fieldKey] = improvementInput.value;
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                }
+                                                            });
+                                                        } else {
+                                                            // Gradual increase mode
+                                                            const totalMonths = months.length;
+                                                            
+                                                            instances.forEach(({ucId, benefitIndex, fieldKey}) => {
+                                                                const ucIndex = updatedUseCases.findIndex(u => u.id === ucId);
+                                                                if (ucIndex >= 0) {
+                                                                    const uc = updatedUseCases[ucIndex];
+                                                                    const normalizedUC = ensureUseCaseHasBenefits(uc);
+                                                                    
+                                                                    months.forEach((month, monthIndex) => {
+                                                                        if (!updatedUseCases[ucIndex].data[month.id]) {
+                                                                            updatedUseCases[ucIndex].data[month.id] = {};
+                                                                        }
+                                                                        
+                                                                        const progress = totalMonths > 1 ? monthIndex / (totalMonths - 1) : 0;
+                                                                        
+                                                                        // Apply volume if requested
+                                                                        if (type === 'volume' || type === 'both') {
+                                                                            const volumeStartInput = document.getElementById(`filldown-volume-start-${metric}`);
+                                                                            const volumeEndInput = document.getElementById(`filldown-volume-end-${metric}`);
+                                                                            
+                                                                            if (volumeStartInput?.value && volumeEndInput?.value) {
+                                                                                const startVal = parseFloat(volumeStartInput.value);
+                                                                                const endVal = parseFloat(volumeEndInput.value);
+                                                                                const volumeFieldKey = normalizedUC.benefits.length === 1 
+                                                                                    ? `volume_${metric}`
+                                                                                    : `volume_${benefitIndex}_${metric}`;
+                                                                                
+                                                                                const interpolatedVolume = Math.round(interpolateValue(startVal, endVal, progress, curveType));
+                                                                                updatedUseCases[ucIndex].data[month.id][volumeFieldKey] = interpolatedVolume;
+                                                                            }
+                                                                        }
+                                                                        
+                                                                        // Apply improvement if requested
+                                                                        if (type === 'improvement' || type === 'both') {
+                                                                            const improvementStartInput = document.getElementById(`filldown-start-${metric}`);
+                                                                            const improvementEndInput = document.getElementById(`filldown-end-${metric}`);
+                                                                            
+                                                                            if (improvementStartInput?.value && improvementEndInput?.value) {
+                                                                                const startVal = parseFloat(improvementStartInput.value);
+                                                                                const endVal = parseFloat(improvementEndInput.value);
+                                                                                const interpolatedImprovement = interpolateValue(startVal, endVal, progress, curveType);
+                                                                                
+                                                                                updatedUseCases[ucIndex].data[month.id][fieldKey] = 
+                                                                                    metric.includes('min') ? interpolatedImprovement.toFixed(1) : Math.round(interpolatedImprovement);
+                                                                            }
+                                                                        }
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                        
+                                                        setUseCases(updatedUseCases);
+                                                        setShowBulkEdit(false);
+                                                    };
+                                                    
                                                     const handleApplyAll = () => {
                                                         if (fillMode === 'constant') {
                                                             // Original constant value logic
@@ -5956,14 +6218,14 @@
                                                                                 if (hasVolumeGradual) {
                                                                                     const startVal = parseFloat(volumeStartInput.value);
                                                                                     const endVal = parseFloat(volumeEndInput.value);
-                                                                                    const interpolatedVolume = Math.round(startVal + (endVal - startVal) * progress);
+                                                                                    const interpolatedVolume = Math.round(interpolateValue(startVal, endVal, progress, curveType));
                                                                                     updatedUseCases[ucIndex].data[month.id][volumeFieldKey] = interpolatedVolume;
                                                                                 }
                                                                                 
                                                                                 if (hasImprovementGradual) {
                                                                                     const startVal = parseFloat(improvementStartInput.value);
                                                                                     const endVal = parseFloat(improvementEndInput.value);
-                                                                                    const interpolatedImprovement = startVal + (endVal - startVal) * progress;
+                                                                                    const interpolatedImprovement = interpolateValue(startVal, endVal, progress, curveType);
                                                                                     updatedUseCases[ucIndex].data[month.id][fieldKey] = 
                                                                                         metric.includes('min') ? interpolatedImprovement.toFixed(1) : Math.round(interpolatedImprovement);
                                                                                 }
@@ -5990,42 +6252,155 @@
                                                             <p className="text-[10px] text-gray-600 mb-2">Enter values to apply to all selected use cases across all months</p>
                                                             
                                                             {/* Mode Toggle */}
-                                                            <div className="mb-3 flex gap-2">
-                                                                <button
-                                                                    onClick={() => setFillMode('constant')}
-                                                                    className={`flex-1 px-2 py-1 text-xs rounded ${fillMode === 'constant' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-                                                                >
-                                                                    Constant Value
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => setFillMode('gradual')}
-                                                                    className={`flex-1 px-2 py-1 text-xs rounded ${fillMode === 'gradual' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-                                                                >
-                                                                    Gradual Increase
-                                                                </button>
+                                                            <div className="mb-3">
+                                                                <label className="block text-[10px] text-gray-600 mb-1">Fill Mode</label>
+                                                                <div className="grid grid-cols-3 gap-1">
+                                                                    <button
+                                                                        onClick={() => setFillMode('constant')}
+                                                                        className={`px-1 py-1 text-[10px] rounded ${fillMode === 'constant' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+                                                                        title="Replace all values with a constant"
+                                                                    >
+                                                                        Replace
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setFillMode('adjust')}
+                                                                        className={`px-1 py-1 text-[10px] rounded ${fillMode === 'adjust' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+                                                                        title="Add or subtract from existing values"
+                                                                    >
+                                                                        Adjust ±
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setFillMode('gradual')}
+                                                                        className={`px-1 py-1 text-[10px] rounded ${fillMode === 'gradual' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+                                                                        title="Gradual increase from start to end"
+                                                                    >
+                                                                        Gradual
+                                                                    </button>
+                                                                </div>
+                                                                {fillMode === 'adjust' && (
+                                                                    <div className="mt-2 p-2 bg-yellow-50 rounded">
+                                                                        <p className="text-[9px] text-yellow-800">
+                                                                            <strong>Adjust Mode:</strong> Enter positive values to add, negative to subtract from existing values
+                                                                        </p>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                             
-                                                            {/* Benefit-specific Volume and Improvement Inputs */}
-                                                            {Array.from(allBenefits.entries()).map(([metric, instances]) => {
-                                                                const volumeLabel = getVolumeLabel(metric);
-                                                                return (
-                                                                    <div key={metric} className="mb-3 p-2 bg-white rounded border border-gray-200">
-                                                                        <div className="text-[11px] font-semibold text-blue-700 mb-2">
-                                                                            {metric} ({instances.length} instance{instances.length > 1 ? 's' : ''})
+                                                            {/* Curve Type Selector - Only show when in gradual mode */}
+                                                            {fillMode === 'gradual' && (
+                                                                <div className="mb-3">
+                                                                    <label className="block text-[10px] text-gray-600 mb-1">Curve Type</label>
+                                                                    <select
+                                                                        value={curveType}
+                                                                        onChange={(e) => setCurveType(e.target.value)}
+                                                                        className="w-full px-2 py-1 text-xs border rounded bg-white"
+                                                                    >
+                                                                        <option value="linear">Linear (Steady Growth)</option>
+                                                                        <option value="exponential">Exponential (Slow Start, Rapid End)</option>
+                                                                        <option value="scurve">S-Curve (Slow-Fast-Slow)</option>
+                                                                        <option value="logarithmic">Logarithmic (Fast Start, Slow End)</option>
+                                                                        <option value="custom">Custom (Fine Control)</option>
+                                                                    </select>
+                                                                    <div className="mt-2 p-2 bg-blue-50 rounded text-[10px] text-gray-700">
+                                                                        {curveType === 'linear' && (
+                                                                            <div>
+                                                                                <strong>Linear Growth:</strong> Values increase uniformly across all months.
+                                                                                <div className="text-[9px] mt-1">Example: 10% → 60% over 12 months = +4.5% each month</div>
+                                                                            </div>
+                                                                        )}
+                                                                        {curveType === 'exponential' && (
+                                                                            <div>
+                                                                                <strong>Exponential Growth:</strong> Slow initial adoption, rapid acceleration near end.
+                                                                                <div className="text-[9px] mt-1">Ideal for: Technology adoption, viral growth patterns</div>
+                                                                            </div>
+                                                                        )}
+                                                                        {curveType === 'scurve' && (
+                                                                            <div>
+                                                                                <strong>S-Curve (Sigmoid):</strong> Classic adoption curve with three phases.
+                                                                                <div className="text-[9px] mt-1">Phase 1: Slow start | Phase 2: Rapid growth | Phase 3: Plateau</div>
+                                                                            </div>
+                                                                        )}
+                                                                        {curveType === 'logarithmic' && (
+                                                                            <div>
+                                                                                <strong>Logarithmic Growth:</strong> Quick initial gains, then diminishing returns.
+                                                                                <div className="text-[9px] mt-1">Ideal for: Quick wins, immediate impact scenarios</div>
+                                                                            </div>
+                                                                        )}
+                                                                        {curveType === 'custom' && (
+                                                                            <div>
+                                                                                <strong>Custom Control:</strong> Set specific percentages for key milestones.
+                                                                                <div className="text-[9px] mt-1">Define values at Month 3, 6, 9 for fine-grained control</div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    
+                                                                    {/* Custom milestone controls */}
+                                                                    {curveType === 'custom' && (
+                                                                        <div className="mt-2 p-2 bg-gray-50 rounded">
+                                                                            <div className="text-[10px] font-medium mb-2">Milestone Percentages</div>
+                                                                            <div className="grid grid-cols-3 gap-2">
+                                                                                <div>
+                                                                                    <label className="text-[9px] text-gray-600">Month 3 (%)</label>
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        id="custom-milestone-3"
+                                                                                        placeholder="25"
+                                                                                        className="w-full px-1 py-0.5 text-xs border rounded"
+                                                                                        min="0" max="100"
+                                                                                    />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <label className="text-[9px] text-gray-600">Month 6 (%)</label>
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        id="custom-milestone-6"
+                                                                                        placeholder="50"
+                                                                                        className="w-full px-1 py-0.5 text-xs border rounded"
+                                                                                        min="0" max="100"
+                                                                                    />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <label className="text-[9px] text-gray-600">Month 9 (%)</label>
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        id="custom-milestone-9"
+                                                                                        placeholder="75"
+                                                                                        className="w-full px-1 py-0.5 text-xs border rounded"
+                                                                                        min="0" max="100"
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="text-[8px] text-gray-500 mt-1">
+                                                                                Percentages represent progress from start to end value
+                                                                            </div>
                                                                         </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {/* Benefit-specific Volume and Improvement Inputs - Grid Layout */}
+                                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
+                                                                {Array.from(allBenefits.entries()).map(([metric, instances]) => {
+                                                                    const volumeLabel = getVolumeLabel(metric);
+                                                                    return (
+                                                                        <div key={metric} className="p-2 bg-white rounded border border-gray-200">
+                                                                            <div className="text-[11px] font-semibold text-blue-700 mb-2 flex items-center justify-between">
+                                                                                <span>{metric}</span>
+                                                                                <span className="text-[9px] text-gray-500">({instances.length} use case{instances.length > 1 ? 's' : ''})</span>
+                                                                            </div>
                                                                         
-                                                                        {/* Volume Input for this metric */}
-                                                                        <div className="mb-2">
-                                                                            <label className="block text-[10px] text-gray-600 mb-1">
-                                                                                {volumeLabel} (Volume) {fillMode === 'gradual' && '- Start → End'}
-                                                                            </label>
-                                                                            {fillMode === 'constant' ? (
+                                                                            {/* Volume Input for this metric */}
+                                                                            <div className="mb-1.5">
+                                                                                <label className="block text-[9px] text-gray-600 mb-0.5 font-medium">
+                                                                                    📊 {volumeLabel} {fillMode === 'gradual' && '(Start → End)'} {fillMode === 'adjust' && '(± Adjustment)'}
+                                                                                </label>
+                                                                            {fillMode === 'constant' || fillMode === 'adjust' ? (
                                                                                 <input
                                                                                     id={`filldown-volume-${metric}`}
                                                                                     type="number"
-                                                                                    placeholder={`Number of ${volumeLabel.toLowerCase()}`}
+                                                                                    placeholder={fillMode === 'adjust' ? `± ${volumeLabel.toLowerCase()} adjustment` : `Number of ${volumeLabel.toLowerCase()}`}
                                                                                     className="w-full px-2 py-1 text-xs border rounded"
-                                                                                    title={`Volume of ${volumeLabel} for ${metric}`}
+                                                                                    title={fillMode === 'adjust' ? `Add/subtract ${volumeLabel} for ${metric}` : `Volume of ${volumeLabel} for ${metric}`}
                                                                                 />
                                                                             ) : (
                                                                                 <div className="flex gap-1">
@@ -6048,18 +6423,22 @@
                                                                             )}
                                                                         </div>
                                                                         
-                                                                        {/* Improvement Input for this metric */}
-                                                                        <div>
-                                                                            <label className="block text-[10px] text-gray-600 mb-1">
-                                                                                Improvement Value {fillMode === 'gradual' && '- Start → End'}
-                                                                            </label>
-                                                                            {fillMode === 'constant' ? (
+                                                                            {/* Improvement Input for this metric */}
+                                                                            <div className="mb-1.5">
+                                                                                <label className="block text-[9px] text-gray-600 mb-0.5 font-medium">
+                                                                                    🎯 Improvement {fillMode === 'gradual' && '(Start → End)'} {fillMode === 'adjust' && '(± Adjustment)'}
+                                                                                </label>
+                                                                            {fillMode === 'constant' || fillMode === 'adjust' ? (
                                                                                 <input
                                                                                     id={`filldown-${metric}`}
                                                                                     type="number"
-                                                                                    placeholder={metric.includes('min') ? 'Minutes' : metric.includes('points') ? 'Points' : 'Percentage'}
+                                                                                    placeholder={fillMode === 'adjust' 
+                                                                                        ? (metric.includes('min') ? '± Minutes' : metric.includes('points') ? '± Points' : '± Percentage')
+                                                                                        : (metric.includes('min') ? 'Minutes' : metric.includes('points') ? 'Points' : 'Percentage')}
                                                                                     className="w-full px-2 py-1 text-xs border rounded"
-                                                                                    title={`Apply to: ${instances.map(i => i.ucName).join(', ')}`}
+                                                                                    title={fillMode === 'adjust' 
+                                                                                        ? `Add/subtract to: ${instances.map(i => i.ucName).join(', ')}`
+                                                                                        : `Apply to: ${instances.map(i => i.ucName).join(', ')}`}
                                                                                 />
                                                                             ) : (
                                                                                 <div className="flex gap-1">
@@ -6081,19 +6460,52 @@
                                                                                 </div>
                                                                             )}
                                                                         </div>
-                                                                    </div>
-                                                                );
-                                                            })}
+                                                                        
+                                                                            {/* Individual Apply Buttons - Compact */}
+                                                                            <div className="flex gap-1 mt-1.5">
+                                                                                <button
+                                                                                    onClick={() => handleApplyIndividualMetric(metric, 'volume', instances)}
+                                                                                    className="flex-1 px-1.5 py-0.5 bg-green-600 text-white text-[9px] rounded hover:bg-green-700 transition-colors"
+                                                                                    title={`Apply only ${volumeLabel} values for ${metric}`}
+                                                                                >
+                                                                                    📊 {volumeLabel}
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={() => handleApplyIndividualMetric(metric, 'improvement', instances)}
+                                                                                    className="flex-1 px-1.5 py-0.5 bg-blue-600 text-white text-[9px] rounded hover:bg-blue-700 transition-colors"
+                                                                                    title={`Apply only improvement values for ${metric}`}
+                                                                                >
+                                                                                    🎯 Improvement
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={() => handleApplyIndividualMetric(metric, 'both', instances)}
+                                                                                    className="px-1.5 py-0.5 bg-purple-600 text-white text-[9px] rounded hover:bg-purple-700 transition-colors"
+                                                                                    title={`Apply both volume and improvement for ${metric}`}
+                                                                                >
+                                                                                    ✅ Both
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
                                                             
-                                                            {/* Apply Button */}
-                                                            <button
-                                                                onClick={handleApplyAll}
-                                                                className="w-full mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                                                            >
-                                                                Apply All Values
-                                                            </button>
+                                                            {/* Apply All Button with warning */}
+                                                            <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                                                <p className="text-[10px] text-yellow-800 mb-2">
+                                                                    ⚠️ <strong>Apply All:</strong> This will overwrite ALL volume and improvement values for ALL benefits
+                                                                </p>
+                                                                <button
+                                                                    onClick={handleApplyAll}
+                                                                    className="w-full px-3 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700"
+                                                                >
+                                                                    Apply All Values (Overwrites Everything)
+                                                                </button>
+                                                            </div>
                                                             
-                                                            <p className="text-xs text-gray-600 mt-1">Fill in values above and click Apply to update all months</p>
+                                                            <p className="text-[9px] text-gray-500 mt-2">
+                                                                💡 Tip: Use individual Apply buttons above to update specific metrics without overwriting others
+                                                            </p>
                                                         </div>
                                                     );
                                                 })()}
@@ -6689,83 +7101,74 @@
                             <div className="space-y-6">
                                 {/* Analytics Controls */}
                                 <div className="bg-white rounded-lg shadow-lg p-4">
-                                    <div className="flex justify-between items-center mb-4">
+                                    {/* First Row: View Title and Tabs */}
+                                    <div className="flex justify-between items-center mb-3">
                                         <h3 className="font-semibold flex items-center gap-2">
                                             <Icons.Chart /> Analytics View
                                         </h3>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => setAnalyticsView('overall')} className={`filter-btn ${analyticsView === 'overall' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>Overall</button>
-                                            <button onClick={() => setAnalyticsView('category')} className={`filter-btn ${analyticsView === 'category' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>By Category</button>
-                                            <button onClick={() => setAnalyticsView('channel')} className={`filter-btn ${analyticsView === 'channel' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>By Channel</button>
-                                            <button onClick={() => setAnalyticsView('usecase')} className={`filter-btn ${analyticsView === 'usecase' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>By Use Case</button>
-                                            <button onClick={() => setAnalyticsView('specialgroup')} className={`filter-btn ${analyticsView === 'specialgroup' ? 'filter-btn-active' : 'filter-btn-inactive'}`}>By Special Group</button>
+                                        <div className="flex gap-1">
+                                            <button onClick={() => setAnalyticsView('overall')} className={`px-3 py-1 text-xs rounded ${analyticsView === 'overall' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Overall</button>
+                                            <button onClick={() => setAnalyticsView('category')} className={`px-3 py-1 text-xs rounded ${analyticsView === 'category' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Category</button>
+                                            <button onClick={() => setAnalyticsView('channel')} className={`px-3 py-1 text-xs rounded ${analyticsView === 'channel' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Channel</button>
+                                            <button onClick={() => setAnalyticsView('benefit')} className={`px-3 py-1 text-xs rounded ${analyticsView === 'benefit' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Benefit</button>
+                                            <button onClick={() => setAnalyticsView('usecase')} className={`px-3 py-1 text-xs rounded ${analyticsView === 'usecase' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Use Case</button>
+                                            <button onClick={() => setAnalyticsView('specialgroup')} className={`px-3 py-1 text-xs rounded ${analyticsView === 'specialgroup' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Special Group</button>
                                         </div>
                                     </div>
 
-                                    {/* Dynamic Filters Based on Analytics View */}
-                                    <div className="flex gap-4 pt-4 border-t flex-wrap">
+                                    {/* Second Row: Filters on same line */}
+                                    <div className="flex items-center gap-4 pt-3 border-t">
+                                        <span className="text-xs font-medium text-gray-600">Filters:</span>
+                                        
                                         {/* Category Filter - Available for all views except 'category' */}
                                         {analyticsView !== 'category' && (
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-sm font-medium">Category:</label>
-                                                <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="px-3 py-1 border rounded text-sm">
-                                                    <option value="all">All Categories</option>
-                                                    {getCategories().map(cat => (<option key={cat} value={cat}>{cat}</option>))}
-                                                </select>
-                                            </div>
+                                            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="px-2 py-1 border rounded text-xs">
+                                                <option value="all">All Categories</option>
+                                                {getCategories().map(cat => (<option key={cat} value={cat}>{cat}</option>))}
+                                            </select>
                                         )}
                                         
                                         {/* Channel Filter - Available for all views except 'channel' */}
                                         {analyticsView !== 'channel' && (
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-sm font-medium">Channel:</label>
-                                                <select value={selectedChannel} onChange={(e) => setSelectedChannel(e.target.value)} className="px-3 py-1 border rounded text-sm">
-                                                    <option value="all">All Channels</option>
-                                                    {ALL_CHANNELS.map(ch => (<option key={ch.id} value={ch.id} className="capitalize">{ch.label}</option>))}
-                                                </select>
-                                            </div>
+                                            <select value={selectedChannel} onChange={(e) => setSelectedChannel(e.target.value)} className="px-2 py-1 border rounded text-xs">
+                                                <option value="all">All Channels</option>
+                                                {ALL_CHANNELS.map(ch => (<option key={ch.id} value={ch.id} className="capitalize">{ch.label}</option>))}
+                                            </select>
                                         )}
                                         
                                         {/* Special Group Filter - Available for all views except 'specialgroup' */}
                                         {analyticsView !== 'specialgroup' && (
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-sm font-medium">Special Group:</label>
-                                                <select value={selectedSpecialGroup || 'all'} onChange={(e) => setSelectedSpecialGroup(e.target.value === 'all' ? null : e.target.value)} className="px-3 py-1 border rounded text-sm">
-                                                    <option value="all">All Groups</option>
-                                                    <option value="none">No Special Group</option>
-                                                    {getAllSpecialGroups().map(sg => (<option key={sg} value={sg}>{sg}</option>))}
-                                                </select>
-                                            </div>
+                                            <select value={selectedSpecialGroup || 'all'} onChange={(e) => setSelectedSpecialGroup(e.target.value === 'all' ? null : e.target.value)} className="px-2 py-1 border rounded text-xs">
+                                                <option value="all">All Groups</option>
+                                                <option value="none">No Special Group</option>
+                                                {getAllSpecialGroups().map(sg => (<option key={sg} value={sg}>{sg}</option>))}
+                                            </select>
                                         )}
                                         
                                         {/* Metric Filter - Available for overall and usecase views */}
-                                        {(analyticsView === 'overall' || analyticsView === 'usecase') && (
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-sm font-medium">Metric:</label>
-                                                <select value={selectedMetric || 'all'} onChange={(e) => setSelectedMetric(e.target.value === 'all' ? null : e.target.value)} className="px-3 py-1 border rounded text-sm">
-                                                    <option value="all">All Metrics</option>
-                                                    {[...new Set(useCases.flatMap(uc => {
+                                        {(analyticsView === 'overall' || analyticsView === 'usecase' || analyticsView === 'benefit') && (
+                                            <select value={selectedMetric || 'all'} onChange={(e) => setSelectedMetric(e.target.value === 'all' ? null : e.target.value)} className="px-2 py-1 border rounded text-xs">
+                                                <option value="all">All Metrics</option>
+                                                {[...new Set(useCases.flatMap(uc => {
                                                         const normalized = ensureUseCaseHasBenefits(uc);
                                                         return normalized.benefits.map(benefit => benefit.metric);
                                                     }))].map(metric => (<option key={metric} value={metric}>{metric}</option>))}
-                                                </select>
-                                            </div>
+                                            </select>
                                         )}
                                         
                                         {/* Clear Filters Button */}
-                                        <div className="flex items-center">
-                                            <button 
-                                                onClick={() => {
-                                                    setSelectedCategory('all');
-                                                    setSelectedChannel('all');
-                                                    setSelectedSpecialGroup(null);
-                                                    setSelectedMetric(null);
-                                                }}
-                                                className="px-3 py-1 text-xs bg-gray-100 text-gray-600 border rounded hover:bg-gray-200"
-                                            >
-                                                Clear Filters
-                                            </button>
-                                        </div>
+                                        <button 
+                                            onClick={() => {
+                                                setSelectedCategory('all');
+                                                setSelectedChannel('all');
+                                                setSelectedSpecialGroup(null);
+                                                setSelectedMetric(null);
+                                            }}
+                                            className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 ml-auto"
+                                            title="Clear all filters"
+                                        >
+                                            ✕ Clear
+                                        </button>
                                         
                                         {/* Active Filters Count */}
                                         <div className="flex items-center text-xs text-blue-600">
@@ -6974,6 +7377,158 @@
                                     </>
                                 )}
 
+                                {/* Benefit View - Shows all benefits across use cases */}
+                                {analyticsView === 'benefit' && (
+                                    <>
+                                        <div className="bg-white rounded-lg shadow-lg p-6">
+                                            <h3 className="text-lg font-semibold mb-2">Benefit Type Performance Analysis</h3>
+                                            <div className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded">
+                                                <strong>View Benefits Across All Use Cases:</strong> This view aggregates all benefits by type, showing which specific improvements drive the most value across your entire AI implementation.
+                                                <div className="mt-2 text-xs">
+                                                    <strong>Note on Percentages:</strong> The "% of Total Value" shows each benefit type's contribution to the overall savings. 
+                                                    Since use cases can have multiple benefits, percentages may sum to more than 100%. For example, if one use case saves $1000 through 
+                                                    both AHT reduction ($600) and deflection ($400), both benefits are credited with their respective contributions.
+                                                </div>
+                                            </div>
+                                            <table className="analytics-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Benefit Type</th>
+                                                        <th>Use Cases<br /><small>Using This Benefit</small></th>
+                                                        <th>Total Volume<br /><small>(varies by type)</small></th>
+                                                        <th>Avg Improvement<br /><small>(net of baseline)</small></th>
+                                                        <th>Total Value<br /><small>($)</small></th>
+                                                        <th>% of Total<br /><small>Value</small></th>
+                                                        <th>Top Use Case<br /><small>(by value)</small></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {(() => {
+                                                        const filteredMonths = getFilteredMonths();
+                                                        const benefitStats = {};
+                                                        const totalSavingsAll = calculateTotalSavings();
+                                                        
+                                                        // Aggregate data by benefit type
+                                                        useCases.forEach(uc => {
+                                                            const normalizedUC = ensureUseCaseHasBenefits(uc);
+                                                            
+                                                            normalizedUC.benefits.forEach((benefit, benefitIndex) => {
+                                                                const metric = benefit.metric;
+                                                                if (!benefitStats[metric]) {
+                                                                    benefitStats[metric] = {
+                                                                        useCases: [],
+                                                                        volumes: [],
+                                                                        improvements: [],
+                                                                        savings: 0,
+                                                                        useCaseValues: {}
+                                                                    };
+                                                                }
+                                                                
+                                                                benefitStats[metric].useCases.push(uc.name);
+                                                                
+                                                                // Calculate savings and collect data for this benefit
+                                                                filteredMonths.forEach(month => {
+                                                                    const md = uc.data[month.id] || {};
+                                                                    const breakdown = calculateSavingsBreakdown(uc, month.id);
+                                                                    
+                                                                    // Find this specific benefit's contribution
+                                                                    breakdown.breakdown.forEach(item => {
+                                                                        if (item.metric === metric) {
+                                                                            benefitStats[metric].savings += item.savings;
+                                                                            
+                                                                            if (!benefitStats[metric].useCaseValues[uc.name]) {
+                                                                                benefitStats[metric].useCaseValues[uc.name] = 0;
+                                                                            }
+                                                                            benefitStats[metric].useCaseValues[uc.name] += item.savings;
+                                                                        }
+                                                                    });
+                                                                    
+                                                                    // Collect volume and improvement data
+                                                                    const volumeFieldKey = normalizedUC.benefits.length === 1 
+                                                                        ? `volume_${metric}`
+                                                                        : `volume_${benefitIndex}_${metric}`;
+                                                                    const improvementFieldKey = normalizedUC.benefits.length === 1 
+                                                                        ? `improvement_${metric}`
+                                                                        : `improvement_${benefitIndex}_${metric}`;
+                                                                    
+                                                                    const volume = parseFloat(md[volumeFieldKey]) || 0;
+                                                                    const improvement = parseFloat(md[improvementFieldKey]) || 0;
+                                                                    
+                                                                    if (volume > 0) benefitStats[metric].volumes.push(volume);
+                                                                    if (improvement !== 0) benefitStats[metric].improvements.push(improvement);
+                                                                });
+                                                            });
+                                                        });
+                                                        
+                                                        // Sort by total savings
+                                                        const sortedBenefits = Object.entries(benefitStats)
+                                                            .sort((a, b) => b[1].savings - a[1].savings);
+                                                        
+                                                        return sortedBenefits.map(([metric, stats]) => {
+                                                            const uniqueUseCases = [...new Set(stats.useCases)];
+                                                            const avgImprovement = stats.improvements.length 
+                                                                ? stats.improvements.reduce((a, b) => a + b, 0) / stats.improvements.length 
+                                                                : 0;
+                                                            const totalVolume = stats.volumes.reduce((a, b) => a + b, 0);
+                                                            
+                                                            // Find top contributing use case
+                                                            const topUseCase = Object.entries(stats.useCaseValues)
+                                                                .sort((a, b) => b[1] - a[1])[0];
+                                                            
+                                                            // Format improvement display
+                                                            let improvementStr = '';
+                                                            if (metric.includes('min')) {
+                                                                improvementStr = `${avgImprovement.toFixed(1)} minutes`;
+                                                            } else if (metric.includes('points')) {
+                                                                improvementStr = `${avgImprovement.toFixed(1)} points`;
+                                                            } else {
+                                                                improvementStr = `${avgImprovement.toFixed(1)}%`;
+                                                            }
+                                                            
+                                                            // Get volume label
+                                                            const volumeLabel = getVolumeLabel(metric);
+                                                            
+                                                            return (
+                                                                <tr key={metric}>
+                                                                    <td className="font-semibold">{metric}</td>
+                                                                    <td title={uniqueUseCases.join(', ')}>
+                                                                        {uniqueUseCases.length} use case{uniqueUseCases.length !== 1 ? 's' : ''}
+                                                                    </td>
+                                                                    <td>
+                                                                        {Math.round(totalVolume).toLocaleString()}
+                                                                        <br />
+                                                                        <small className="text-gray-500">{volumeLabel}</small>
+                                                                    </td>
+                                                                    <td>{improvementStr}</td>
+                                                                    <td className="font-bold text-green-600">
+                                                                        ${Math.round(stats.savings).toLocaleString()}
+                                                                    </td>
+                                                                    <td>
+                                                                        {totalSavingsAll > 0 
+                                                                            ? `${(stats.savings / totalSavingsAll * 100).toFixed(1)}%`
+                                                                            : '0%'}
+                                                                    </td>
+                                                                    <td className="text-sm">
+                                                                        {topUseCase ? (
+                                                                            <>
+                                                                                {topUseCase[0]}
+                                                                                <br />
+                                                                                <small className="text-gray-500">
+                                                                                    (${Math.round(topUseCase[1]).toLocaleString()})
+                                                                                </small>
+                                                                            </>
+                                                                        ) : '-'}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        });
+                                                    })()}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </>
+                                )}
+
                                 {/* Use Case View - Charts and Table */}
                                 {analyticsView === 'usecase' && (
                                     <>
@@ -7049,15 +7604,31 @@
                                                             });
                                                         }
                                                         
-                                                        // Format benefits and average improvements for display
+                                                        // Format benefits and average improvements for display with metric names
                                                         const benefitSummary = normalizedUC.benefits.map(b => b.metric).join(', ');
-                                                        const avgImprovementStr = normalizedUC.benefits.map(benefit => {
+                                                        let avgImprovementStr = '';
+                                                        let avgImprovementTitle = '';
+                                                        if (normalizedUC.benefits.length === 1) {
+                                                            // Single benefit - show just the value
+                                                            const benefit = normalizedUC.benefits[0];
                                                             const improvements = benefitImprovements[benefit.metric] || [];
                                                             const avg = improvements.length ? (improvements.reduce((a,b)=>a+b,0)/improvements.length) : 0;
-                                                            if (benefit.metric.includes('min')) return `${avg.toFixed(1)} min`;
-                                                            if (benefit.metric.includes('points')) return `${avg.toFixed(1)} pts`;
-                                                            return `${avg.toFixed(1)}%`;
-                                                        }).join(', ');
+                                                            if (benefit.metric.includes('min')) avgImprovementStr = `${avg.toFixed(1)} min`;
+                                                            else if (benefit.metric.includes('points')) avgImprovementStr = `${avg.toFixed(1)} pts`;
+                                                            else avgImprovementStr = `${avg.toFixed(1)}%`;
+                                                        } else {
+                                                            // Multiple benefits - show breakdown
+                                                            const breakdownParts = normalizedUC.benefits.map(benefit => {
+                                                                const improvements = benefitImprovements[benefit.metric] || [];
+                                                                const avg = improvements.length ? (improvements.reduce((a,b)=>a+b,0)/improvements.length) : 0;
+                                                                const shortName = benefit.metric.split('(')[0].trim();
+                                                                if (benefit.metric.includes('min')) return `${shortName}: ${avg.toFixed(1)}min`;
+                                                                if (benefit.metric.includes('points')) return `${shortName}: ${avg.toFixed(1)}pts`;
+                                                                return `${shortName}: ${avg.toFixed(1)}%`;
+                                                            });
+                                                            avgImprovementStr = `Multiple (${normalizedUC.benefits.length} types)`;
+                                                            avgImprovementTitle = breakdownParts.join(', ');
+                                                        }
                                                         
                                                         // Format top contributor display
                                                         const topContributorStr = topContributor.metric !== '-' 
@@ -7072,7 +7643,7 @@
                                                                 <td title={benefitSummary}>{normalizedUC.benefits.length} benefit{normalizedUC.benefits.length !== 1 ? 's' : ''}</td>
                                                                 <td>{uc.specialGroup || '-'}</td>
                                                                 <td>{Math.round(totalVolume).toLocaleString()}</td>
-                                                                <td>{avgImprovementStr}</td>
+                                                                <td title={avgImprovementTitle || null}>{avgImprovementStr}</td>
                                                                 <td className="font-bold text-green-600">{`$${Math.round(totalSavings).toLocaleString()}`}</td>
                                                                 <td className="text-sm">{topContributorStr}</td>
                                                                 <td>{(() => {
