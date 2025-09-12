@@ -1813,23 +1813,126 @@
                 return migrated;
             };
 
+            // Centralized metric configuration - single source of truth for all calculations
+            // To add a new metric:
+            // 1. Add entry to METRIC_CONFIG with unique key matching metric name
+            // 2. Set type: 'percentage_cost', 'time_cost', 'points_value', 'percentage_value', or create new type
+            // 3. Define formula (documentation) and excelFormula (function returning Excel formula string)
+            // 4. For value-based metrics, add metricKey pointing to metricValues configuration
+            // 5. Update calculateBenefitSavings switch statement if new type is created
+            const METRIC_CONFIG = {
+                'Deflection Rate (%)': {
+                    type: 'percentage_cost',
+                    formula: 'volume * (netImprovement / 100) * cost',
+                    excelFormula: (row) => `=G${row}*(J${row}/100)*K${row}`,
+                    description: 'Percentage of contacts deflected'
+                },
+                'AHT Reduction (min)': {
+                    type: 'time_cost',
+                    formula: 'volume * cappedMinutes * costPerMinute',
+                    excelFormula: (row, costPerMinute) => `=G${row}*MIN(J${row},${costPerMinute.aht})*${costPerMinute.rate}`,
+                    requiresAHT: true,
+                    description: 'Minutes saved per contact'
+                },
+                'Automation Rate (%)': {
+                    type: 'percentage_cost',
+                    formula: 'volume * (netImprovement / 100) * cost',
+                    excelFormula: (row) => `=G${row}*(J${row}/100)*K${row}`,
+                    description: 'Percentage of contacts automated'
+                },
+                'Self-Service Resolution (%)': {
+                    type: 'percentage_cost',
+                    formula: 'volume * (netImprovement / 100) * cost',
+                    excelFormula: (row) => `=G${row}*(J${row}/100)*K${row}`,
+                    description: 'Percentage resolved via self-service'
+                },
+                'Transfer Rate Reduction (%)': {
+                    type: 'percentage_cost',
+                    formula: 'volume * (netImprovement / 100) * cost',
+                    excelFormula: (row) => `=G${row}*(J${row}/100)*K${row}`,
+                    description: 'Reduction in transfer rate'
+                },
+                'NPS Improvement (points)': {
+                    type: 'points_value',
+                    metricKey: 'npsImprovement',
+                    formula: 'volume * netImprovement * valuePerPoint',
+                    excelFormula: (row, value) => `=G${row}*J${row}*${value}`,
+                    description: 'NPS points improvement'
+                },
+                'CSAT Improvement (%)': {
+                    type: 'percentage_value',
+                    metricKey: 'csatImprovement',
+                    formula: 'volume * (netImprovement / 100) * value',
+                    excelFormula: (row, value) => `=G${row}*(J${row}/100)*${value}`,
+                    description: 'CSAT percentage improvement'
+                },
+                'FCR Improvement (%)': {
+                    type: 'fcr_special',
+                    formula: 'volume * (netImprovement / 100) * cost * repeatCallFactor',
+                    excelFormula: (row) => `=G${row}*(J${row}/100)*K${row}*0.3`,
+                    repeatCallFactor: 0.3,
+                    description: 'First Call Resolution improvement'
+                },
+                'Conversion Rate (%)': {
+                    type: 'percentage_value',
+                    metricKey: 'conversionRate',
+                    formula: 'volume * (netImprovement / 100) * value',
+                    excelFormula: (row, value) => `=G${row}*(J${row}/100)*${value}`,
+                    description: 'Conversion rate improvement'
+                },
+                'Agent Retention (%)': {
+                    type: 'percentage_value',
+                    metricKey: 'agentRetention',
+                    formula: 'volume * (netImprovement / 100) * value',
+                    excelFormula: (row, value) => `=G${row}*(J${row}/100)*${value}`,
+                    description: 'Agent retention improvement'
+                },
+                'Compliance Rate (%)': {
+                    type: 'percentage_value',
+                    metricKey: 'complianceRate',
+                    formula: 'volume * (netImprovement / 100) * value',
+                    excelFormula: (row, value) => `=G${row}*(J${row}/100)*${value}`,
+                    description: 'Compliance rate improvement'
+                }
+            };
+
             // Helper function to get all available metric types
             const getAvailableMetrics = () => {
-                return [
-                    // Cost-based metrics (traditional)
-                    'Deflection Rate (%)',
-                    'AHT Reduction (min)', 
-                    'Automation Rate (%)',
-                    'Self-Service Resolution (%)',
-                    'Transfer Rate Reduction (%)',
-                    // Value-based metrics (new)
-                    'NPS Improvement (points)',
-                    'CSAT Improvement (%)',
-                    'FCR Improvement (%)',
-                    'Conversion Rate (%)',
-                    'Agent Retention (%)',
-                    'Compliance Rate (%)'
-                ];
+                return Object.keys(METRIC_CONFIG);
+            };
+            
+            // Helper function to validate metric configuration consistency
+            const validateMetricConfig = () => {
+                const errors = [];
+                Object.entries(METRIC_CONFIG).forEach(([metric, config]) => {
+                    if (!config.type) errors.push(`${metric}: missing type`);
+                    if (!config.formula) errors.push(`${metric}: missing formula documentation`);
+                    if (!config.excelFormula) errors.push(`${metric}: missing excelFormula function`);
+                    if (config.type.includes('value') && !config.metricKey) {
+                        errors.push(`${metric}: value-based metric missing metricKey`);
+                    }
+                });
+                if (errors.length > 0) {
+                    console.error('Metric configuration errors:', errors);
+                }
+                return errors.length === 0;
+            };
+            
+            // Helper to get metric info for UI display
+            const getMetricInfo = (metricName) => {
+                const config = METRIC_CONFIG[metricName];
+                if (!config) return { description: 'Unknown metric', unit: '%' };
+                
+                const unit = metricName.includes('(min)') ? 'minutes' : 
+                            metricName.includes('(points)') ? 'points' : 
+                            metricName.includes('(%)') ? '%' : '';
+                
+                return {
+                    description: config.description || metricName,
+                    unit: unit,
+                    type: config.type,
+                    requiresAHT: config.requiresAHT || false
+                };
             };
 
             // Helper function to categorize metrics by type for analytics
@@ -2079,9 +2182,16 @@
             };
             
 
-            // Calculate savings for a single benefit
+            // Calculate savings for a single benefit using centralized metric config
             const calculateBenefitSavings = (useCase, benefit, monthData, benefitIndex = 0) => {
                 const normalizedUC = ensureUseCaseHasBenefits(useCase);
+                
+                // Get metric configuration
+                const metricConfig = METRIC_CONFIG[benefit.metric];
+                if (!metricConfig) {
+                    console.warn(`No configuration found for metric: ${benefit.metric}`);
+                    return 0;
+                }
                 
                 // Get benefit-specific volume or fall back to general volume
                 const volumeFieldKey = normalizedUC.benefits.length === 1 
@@ -2098,63 +2208,49 @@
                 // Calculate net improvement (improvement - baseline)
                 let netImprovement = Math.max(0, improvement - baseline);
                 
-                // Different calculation based on metric type
-                if (benefit.metric.includes('AHT Reduction')) {
-                    // Cost-based calculation
-                    let effectiveCost = getEffectiveCost(useCase, useCase.channel);
-                    const aht = Math.max(0.01, parseFloat(getApplicableAHT(useCase)) || 10);
-                    const costPerMinute = effectiveCost / aht;
-                    const cappedMinutes = Math.min(netImprovement, aht);
-                    return volume * cappedMinutes * costPerMinute;
+                // Calculate based on metric type from configuration
+                switch (metricConfig.type) {
+                    case 'time_cost': {
+                        // AHT Reduction calculation
+                        const effectiveCost = getEffectiveCost(useCase, useCase.channel);
+                        const aht = Math.max(0.01, parseFloat(getApplicableAHT(useCase)) || 10);
+                        const costPerMinute = effectiveCost / aht;
+                        const cappedMinutes = Math.min(netImprovement, aht);
+                        return volume * cappedMinutes * costPerMinute;
+                    }
                     
-                } else if (benefit.metric.includes('Deflection') || benefit.metric.includes('Automation') || 
-                          benefit.metric.includes('Resolution') || benefit.metric.includes('Transfer')) {
-                    // Cost-based calculation
-                    let effectiveCost = getEffectiveCost(useCase, useCase.channel);
-                    const pct = Math.max(0, Math.min(100, netImprovement));
-                    return volume * (pct / 100) * effectiveCost;
+                    case 'percentage_cost': {
+                        // Deflection, Automation, Resolution, Transfer Rate calculations
+                        const effectiveCost = getEffectiveCost(useCase, useCase.channel);
+                        const pct = Math.max(0, Math.min(100, netImprovement));
+                        return volume * (pct / 100) * effectiveCost;
+                    }
                     
-                } else if (benefit.metric.includes('NPS Improvement')) {
-                    // Value-based calculation with hierarchy
-                    const valuePerPoint = getEffectiveMetricValue('npsImprovement', useCase);
-                    return volume * netImprovement * valuePerPoint;
+                    case 'fcr_special': {
+                        // FCR with repeat call factor
+                        const effectiveCost = getEffectiveCost(useCase, useCase.channel);
+                        const pct = Math.max(0, Math.min(100, netImprovement));
+                        const repeatCallFactor = metricConfig.repeatCallFactor || 0.3;
+                        return volume * (pct / 100) * effectiveCost * repeatCallFactor;
+                    }
                     
-                } else if (benefit.metric.includes('CSAT Improvement')) {
-                    // Value-based calculation with hierarchy
-                    const valuePerPoint = getEffectiveMetricValue('csatImprovement', useCase);
-                    const pct = Math.max(0, Math.min(100, netImprovement));
-                    return volume * (pct / 100) * valuePerPoint;
+                    case 'points_value': {
+                        // NPS points-based calculation
+                        const value = getEffectiveMetricValue(metricConfig.metricKey, useCase);
+                        return volume * netImprovement * value;
+                    }
                     
-                } else if (benefit.metric.includes('FCR Improvement') || benefit.metric.includes('First Call Resolution')) {
-                    // Cost-based calculation - FCR improvement reduces repeat calls
-                    // If FCR improves by 10%, that's 10% fewer repeat calls
-                    let effectiveCost = getEffectiveCost(useCase, useCase.channel);
-                    const pct = Math.max(0, Math.min(100, netImprovement));
-                    // Assuming repeat calls are typically 20-30% of volume, FCR improvement prevents these
-                    // More accurate would be: volume * repeatCallRate * (FCR improvement %) * cost
-                    // But for simplicity, treating it like deflection rate
-                    return volume * (pct / 100) * effectiveCost;
+                    case 'percentage_value': {
+                        // CSAT, Conversion, Agent Retention, Compliance percentage-based calculations
+                        const value = getEffectiveMetricValue(metricConfig.metricKey, useCase);
+                        const pct = Math.max(0, Math.min(100, netImprovement));
+                        return volume * (pct / 100) * value;
+                    }
                     
-                } else if (benefit.metric.includes('Conversion Rate')) {
-                    // Value-based calculation with hierarchy
-                    const avgDealValue = getEffectiveMetricValue('conversionRate', useCase);
-                    const pct = Math.max(0, Math.min(100, netImprovement));
-                    return volume * (pct / 100) * avgDealValue;
-                    
-                } else if (benefit.metric.includes('Agent Retention')) {
-                    // Value-based calculation with hierarchy
-                    const replacementCost = getEffectiveMetricValue('agentRetention', useCase);
-                    const pct = Math.max(0, Math.min(100, netImprovement));
-                    return volume * (pct / 100) * replacementCost;
-                    
-                } else if (benefit.metric.includes('Compliance Rate')) {
-                    // Value-based calculation with hierarchy
-                    const violationCost = getEffectiveMetricValue('complianceRate', useCase);
-                    const pct = Math.max(0, Math.min(100, netImprovement));
-                    return volume * (pct / 100) * violationCost;
+                    default:
+                        console.warn(`Unknown metric type: ${metricConfig.type} for metric: ${benefit.metric}`);
+                        return 0;
                 }
-                
-                return 0;
             };
 
             // Calculate total savings for a use case (sum of all benefits)
@@ -3572,6 +3668,11 @@
                 setUseCases(updatedUseCases);
             };
             
+            // Validate metric configuration on mount
+            React.useEffect(() => {
+                validateMetricConfig();
+            }, []);
+            
             // Keyboard shortcuts
             React.useEffect(() => {
                 const handleKeyDown = (e) => {
@@ -4911,42 +5012,24 @@
                 window.URL.revokeObjectURL(url);
             };
 
-            // Enhanced CSV export with actual Excel formulas for full automation
-            const exportToExcelWithFormulas = () => {
-                // This creates a CSV with ACTUAL Excel formulas that will calculate automatically
-                let csv = 'sep=,\n'; // Tell Excel to use comma separator
-                csv += '=== AI ROI CALCULATOR - EXCEL AUTOMATED FORMULAS ===\n';
-                csv += `Export Date,${new Date().toISOString()}\n`;
-                csv += `Analysis Period,"${dateRange.start} to ${dateRange.end}"\n`;
-                csv += `Default AHT,${defaultAHT}\n`;
-                csv += `Agent Utilization,${agentUtilization}\n`;
-                csv += '\n';
+            // Excel export with live formulas for full traceability and automatic calculations
+            const exportToExcel = () => {
+                // Create a tab-separated file for better Excel formula recognition
+                const TAB = '\t';
+                let csv = '';
                 
-                // Sheet layout with actual Excel formulas
-                csv += 'COST CONFIGURATION TABLE\n';
-                csv += 'Type,Category,Channel,Special Group,Cost Type,Value,AHT,Effective Cost\n';
+                // Simple header section
+                csv += 'AI ROI CALCULATOR - EXCEL EXPORT WITH LIVE FORMULAS\n'; // Row 1
+                csv += `Export Date${TAB}${new Date().toISOString().split('T')[0]}\n`; // Row 2
+                csv += `Analysis Period${TAB}${dateRange.start} to ${dateRange.end}\n`; // Row 3
+                csv += '\n'; // Row 4 (blank)
                 
-                let costRow = 9; // Track current row for formula references
-                const costLookup = {}; // Store row references for VLOOKUP
+                // Main calculations section with headers
+                csv += `Use Case${TAB}Category${TAB}Channel${TAB}Special Group${TAB}Benefit${TAB}Month${TAB}Volume${TAB}Improvement${TAB}Baseline${TAB}Net Improvement${TAB}Effective Cost${TAB}Savings\n`; // Row 5 - Column Headers
                 
-                // Build cost configuration with row tracking
-                Object.entries(channelCosts).forEach(([channel, cost]) => {
-                    const costValue = typeof cost === 'object' ? cost.value : cost;
-                    const costType = typeof cost === 'object' && cost.costType ? cost.costType : 'perContact';
-                    const aht = typeof cost === 'object' && cost.ahtMinutes ? cost.ahtMinutes : defaultAHT;
-                    const effectiveFormula = costType === 'hourly' 
-                        ? `=F${costRow}*G${costRow}/60` 
-                        : `=F${costRow}`;
-                    csv += `Channel,All,${channel},,${costType === 'hourly' ? 'Hourly' : 'Per Contact'},${costValue},${aht},${effectiveFormula}\n`;
-                    costLookup[`channel_${channel}`] = costRow;
-                    costRow++;
-                });
-                
-                csv += '\n';
-                csv += 'CALCULATIONS WITH LIVE FORMULAS\n';
-                csv += 'Use Case,Category,Channel,Special Group,Benefit,Month,Volume,Improvement,Baseline,Net Improvement,Effective Cost,Savings Formula,Savings\n';
-                
-                let calcRow = costRow + 3; // Start calculations after cost table
+                // Data starts at row 6
+                let currentRow = 6;
+                const calcStartRow = currentRow; // Track where calculations start
                 
                 useCases.forEach(uc => {
                     const normalizedUC = ensureUseCaseHasBenefits(uc);
@@ -4962,50 +5045,84 @@
                             
                             const volume = parseFloat(monthData[volumeFieldKey] || monthData.volume) || 0;
                             const improvement = parseFloat(monthData[improvementFieldKey]) || 0;
+                            const baseline = benefit.baselineValue || 0;
                             const effectiveCost = getEffectiveCost(uc, uc.channel);
                             
-                            // Create actual Excel formulas
-                            let savingsFormula = '';
-                            if (benefit.metric.includes('Deflection') || benefit.metric.includes('Rate')) {
-                                savingsFormula = `=G${calcRow}*(J${calcRow}/100)*K${calcRow}`;
-                            } else if (benefit.metric.includes('AHT')) {
-                                savingsFormula = `=G${calcRow}*J${calcRow}*(K${calcRow}/${defaultAHT})`;
-                            } else if (benefit.metric.includes('NPS') || benefit.metric.includes('CSAT')) {
-                                const metricValue = benefit.metric.includes('NPS') ? 
-                                    getEffectiveMetricValue('npsImprovement', uc) :
-                                    getEffectiveMetricValue('csatImprovement', uc);
-                                savingsFormula = `=G${calcRow}*H${calcRow}*${metricValue}`;
+                            // Net Improvement formula (Excel will calculate this)
+                            const netImprovementFormula = `=MAX(0,H${currentRow}-I${currentRow})`;
+                            
+                            // Create Excel formula using centralized metric configuration
+                            let savingsFormula;
+                            const metricConfig = METRIC_CONFIG[benefit.metric];
+                            
+                            if (!metricConfig) {
+                                console.warn(`No configuration found for metric: ${benefit.metric}, using default formula`);
+                                savingsFormula = `=G${currentRow}*(J${currentRow}/100)*K${currentRow}`;
                             } else {
-                                savingsFormula = `=G${calcRow}*(J${calcRow}/100)*K${calcRow}`;
+                                // Generate formula based on metric type
+                                switch (metricConfig.type) {
+                                    case 'time_cost': {
+                                        const aht = getApplicableAHT(uc) || defaultAHT;
+                                        const costPerMinute = effectiveCost / aht;
+                                        savingsFormula = metricConfig.excelFormula(currentRow, { aht, rate: costPerMinute.toFixed(4) });
+                                        break;
+                                    }
+                                    
+                                    case 'percentage_cost':
+                                    case 'fcr_special':
+                                        savingsFormula = metricConfig.excelFormula(currentRow);
+                                        break;
+                                    
+                                    case 'points_value':
+                                    case 'percentage_value': {
+                                        const value = getEffectiveMetricValue(metricConfig.metricKey, uc);
+                                        savingsFormula = metricConfig.excelFormula(currentRow, value);
+                                        break;
+                                    }
+                                    
+                                    default:
+                                        console.warn(`Unknown metric type: ${metricConfig.type}`);
+                                        savingsFormula = `=G${currentRow}*(J${currentRow}/100)*K${currentRow}`;
+                                }
                             }
                             
-                            csv += `"${uc.name}",${uc.category},${uc.channel},${uc.specialGroup || 'None'},"${benefit.metric}",${month.month} ${month.year},`;
-                            csv += `${volume},${improvement},${benefit.baselineValue},=MAX(0;H${calcRow}-I${calcRow}),${effectiveCost},"${savingsFormula}",${savingsFormula}\n`;
-                            calcRow++;
+                            // Output row with formulas
+                            csv += `${uc.name}${TAB}${uc.category}${TAB}${uc.channel}${TAB}${uc.specialGroup || 'None'}${TAB}${benefit.metric}${TAB}${month.month} ${month.year}${TAB}`;
+                            csv += `${volume}${TAB}${improvement}${TAB}${baseline}${TAB}${netImprovementFormula}${TAB}${effectiveCost.toFixed(2)}${TAB}${savingsFormula}\n`;
+                            currentRow++;
                         });
                     });
                 });
                 
+                const calcEndRow = currentRow - 1;
+                
+                // SECTION 3: Summary with formulas
                 csv += '\n';
                 csv += 'SUMMARY\n';
-                csv += `Total Savings,=SUM(M${costRow + 3}:M${calcRow - 1})\n`;
+                csv += `Total Savings Across All Use Cases${TAB}=SUM(L${calcStartRow}:L${calcEndRow})\n`;
+                csv += `Average Savings per Month${TAB}=AVERAGE(L${calcStartRow}:L${calcEndRow})\n`;
+                csv += `Number of Calculations${TAB}=COUNT(L${calcStartRow}:L${calcEndRow})\n`;
                 csv += '\n';
-                csv += 'INSTRUCTIONS\n';
-                csv += '"1. Open this file in Excel"\n';
-                csv += '"2. The formulas are already active - no conversion needed!"\n';
-                csv += '"3. Column M contains live formulas that calculate automatically"\n';
-                csv += '"4. Modify volumes or improvements to see instant recalculation"\n';
                 
-                const blob = new Blob([csv], { type: 'text/csv' });
+                // Instructions
+                csv += 'INSTRUCTIONS FOR USE\n';
+                csv += '1. Save and open this file in Microsoft Excel\n';
+                csv += '2. All formulas in columns J (Net Improvement) and L (Savings) are live and will recalculate automatically\n';
+                csv += '3. You can modify Volume or Improvement values to see instant updates\n';
+                csv += '4. The Effective Cost column shows the actual per-contact cost after all overrides\n';
+                csv += '5. Total Savings at the bottom sums all individual savings calculations\n';
+                
+                // Download the file as .xls for better Excel compatibility
+                const blob = new Blob([csv], { type: 'application/vnd.ms-excel' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `roi_excel_formulas_${new Date().toISOString().split('T')[0]}.csv`;
+                a.download = `roi_calculator_excel_${new Date().toISOString().split('T')[0]}.xls`;
                 a.click();
                 window.URL.revokeObjectURL(url);
             };
             
-            // Keep the original traceable export for documentation purposes
+            // Deprecated - keeping for backward compatibility only
             const exportToExcelTraceableCSV = () => {
                 // This creates a CSV with formula documentation that can be imported to Excel
                 // and manually converted to formulas if needed, without maintenance overhead
@@ -5075,19 +5192,39 @@
                             const savings = calculateBenefitSavings(normalizedUC, benefit, monthData, benefitIndex);
                             const costSource = getCostSourceDescription(uc, uc.channel);
                             
-                            // Document the formula for this calculation
+                            // Document the formula using centralized metric configuration
                             let formula = '';
-                            if (benefit.metric.includes('Deflection') || benefit.metric.includes('Rate')) {
+                            const metricConfig = METRIC_CONFIG[benefit.metric];
+                            
+                            if (!metricConfig) {
                                 formula = `${volume} × (${netImprovement}% / 100) × $${effectiveCost.toFixed(2)}`;
-                            } else if (benefit.metric.includes('AHT')) {
-                                const costPerMin = effectiveCost / (getApplicableAHT(uc) || defaultAHT);
-                                formula = `${volume} × ${netImprovement} min × $${costPerMin.toFixed(3)}/min`;
-                            } else if (benefit.metric.includes('NPS')) {
-                                const npsValue = getEffectiveMetricValue('npsImprovement', uc);
-                                formula = `${volume} × ${improvement} points × $${npsValue}/point`;
-                            } else if (benefit.metric.includes('CSAT')) {
-                                const csatValue = getEffectiveMetricValue('csatImprovement', uc);
-                                formula = `${volume} × ${netImprovement}% × $${csatValue}`;
+                            } else {
+                                switch (metricConfig.type) {
+                                    case 'time_cost': {
+                                        const costPerMin = effectiveCost / (getApplicableAHT(uc) || defaultAHT);
+                                        const cappedMinutes = Math.min(netImprovement, getApplicableAHT(uc) || defaultAHT);
+                                        formula = `${volume} × ${cappedMinutes} min × $${costPerMin.toFixed(3)}/min`;
+                                        break;
+                                    }
+                                    case 'percentage_cost':
+                                        formula = `${volume} × (${netImprovement}% / 100) × $${effectiveCost.toFixed(2)}`;
+                                        break;
+                                    case 'fcr_special':
+                                        formula = `${volume} × (${netImprovement}% / 100) × $${effectiveCost.toFixed(2)} × ${metricConfig.repeatCallFactor}`;
+                                        break;
+                                    case 'points_value': {
+                                        const value = getEffectiveMetricValue(metricConfig.metricKey, uc);
+                                        formula = `${volume} × ${netImprovement} points × $${value}/point`;
+                                        break;
+                                    }
+                                    case 'percentage_value': {
+                                        const value = getEffectiveMetricValue(metricConfig.metricKey, uc);
+                                        formula = `${volume} × (${netImprovement}% / 100) × $${value}`;
+                                        break;
+                                    }
+                                    default:
+                                        formula = `${volume} × (${netImprovement}% / 100) × $${effectiveCost.toFixed(2)}`;
+                                }
                             }
                             
                             csv += `"${uc.name}","${benefit.metric}",${month.month} ${month.year},${volume},${improvement},${benefit.baselineValue},${netImprovement},${effectiveCost.toFixed(2)},"${formula}",${savings.toFixed(2)},"${costSource}"\n`;
@@ -5616,22 +5753,16 @@
                                     <button
                                         onClick={exportToCSV}
                                         className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                                        title="Export raw data as CSV for further analysis"
                                     >
                                         <Icons.Download /> Export CSV
                                     </button>
                                     <button
-                                        onClick={exportToExcelWithFormulas}
-                                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                                        title="Export with LIVE Excel formulas - opens in Excel with automatic calculations!"
+                                        onClick={exportToExcel}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                        title="Export to Excel with live formulas - all calculations are automatic and traceable!"
                                     >
-                                        <Icons.Dollar /> Excel Auto
-                                    </button>
-                                    <button
-                                        onClick={exportToExcelTraceableCSV}
-                                        className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
-                                        title="Export with formula documentation for Excel - shows exact calculations and cost hierarchy references"
-                                    >
-                                        <Icons.Chart /> Excel Docs
+                                        <Icons.Chart /> Export to Excel
                                     </button>
                                     <button
                                         onClick={exportToJSON}
