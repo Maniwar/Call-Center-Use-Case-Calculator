@@ -6940,6 +6940,10 @@
                                                     });
                                                     
                                                     const handleApplyIndividualMetric = (metric, type, instances) => {
+                                                        // Save current state to undo stack before making changes
+                                                        setUndoStack(prev => [...prev.slice(-49), useCases]);
+                                                        setRedoStack([]);
+                                                        
                                                         const updatedUseCases = [...useCases];
                                                         
                                                         if (fillMode === 'constant' || fillMode === 'adjust') {
@@ -7101,6 +7105,10 @@
                                                             }
                                                         } else {
                                                             // Gradual increase logic
+                                                            // Save current state to undo stack BEFORE making changes
+                                                            setUndoStack(prev => [...prev.slice(-49), useCases]);
+                                                            setRedoStack([]);
+                                                            
                                                             const updatedUseCases = [...useCases];
                                                             const totalMonths = months.length;
                                                             
@@ -7153,8 +7161,7 @@
                                                                 }
                                                             });
                                                             
-                                                            setUndoStack(prev => [...prev.slice(-49), useCases]);
-                                                            setRedoStack([]);
+                                                            // Don't save to undo stack here - we already saved before making changes
                                                             setUseCases(updatedUseCases);
                                                         }
                                                         
