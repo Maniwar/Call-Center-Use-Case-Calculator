@@ -5969,10 +5969,10 @@
             };
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-                    <div className="max-w-7xl mx-auto">
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 lg:p-4">
+                    <div className="w-full px-2 lg:px-4">
                         {/* Header */}
-                        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                        <div className="bg-white rounded-lg shadow-lg p-3 mb-3">
                             <div className="flex justify-between items-center mb-4">
                                 <div>
                                     <h1 className="text-3xl font-bold flex items-center gap-3">
@@ -6822,7 +6822,7 @@
                                 
                                 {/* Bulk Operations Panel */}
                                 {bulkEditMode && (
-                                    <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
+                                    <div className="bg-white rounded-lg shadow p-2 mb-3">
                                         <h3 className="font-semibold mb-4 flex items-center gap-2">
                                             <Icons.Settings /> Bulk Operations
                                             {selectedUseCases.size > 0 && (
@@ -7565,7 +7565,7 @@
                                             <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                                                 <tr>
                                                     {bulkEditMode && (
-                                                        <th className="px-4 py-3 text-center">
+                                                        <th className="px-2 py-2 text-center">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={useCases.length > 0 && selectedUseCases.size === useCases.length}
@@ -7580,23 +7580,22 @@
                                                             />
                                                         </th>
                                                     )}
-                                                    <th className="px-4 py-3 text-left">Category</th>
-                                                    <th className="px-4 py-3 text-left">Use Case</th>
-                                                    <th className="px-4 py-3 text-left">Channel</th>
-                                                    <th className="px-4 py-3 text-left">Special Group</th>
-                                                    <th className="px-4 py-3 text-left">Benefits</th>
+                                                    <th className="px-2 py-2 text-left text-xs">Category</th>
+                                                    <th className="px-2 py-2 text-left text-xs">Use Case</th>
+                                                    <th className="px-2 py-2 text-left text-xs">Channel</th>
+                                                    <th className="px-2 py-2 text-left text-xs">Special Group</th>
+                                                    <th className="px-2 py-2 text-left text-xs">Benefits</th>
                                                     {months.map(month => (
-                                                        <th key={month.id} className="px-4 py-3 text-center min-w-[140px]">
-                                                            {month.month} {month.year}
+                                                        <th key={month.id} className="px-1 py-1 text-center min-w-[90px]">
+                                                            <div className="text-[10px] font-semibold">{month.month.substring(0, 3)}</div>
+                                                            <div className="text-[9px] text-gray-500">{month.year}</div>
                                                             {bulkEditMode && (
-                                                                <div className="mt-1 text-xs opacity-75">
-                                                                    Ctrl+V to paste
-                                                                </div>
+                                                                <div className="text-[8px] opacity-75">Paste</div>
                                                             )}
                                                         </th>
                                                     ))}
-                                                    <th className="px-4 py-3 text-center">Total</th>
-                                                    <th className="px-4 py-3 text-center">Actions</th>
+                                                    <th className="px-2 py-2 text-center text-xs">Total</th>
+                                                    <th className="px-2 py-2 text-center text-xs">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -7620,7 +7619,7 @@
                                                     return (
                                                         <tr key={useCase.id} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${selectedUseCases.has(useCase.id) ? 'ring-2 ring-blue-300 bg-blue-50' : ''}`}>
                                                             {bulkEditMode && (
-                                                                <td className="px-4 py-3 text-center">
+                                                                <td className="px-2 py-1 text-center">
                                                                     <input
                                                                         type="checkbox"
                                                                         checked={selectedUseCases.has(useCase.id)}
@@ -7637,10 +7636,10 @@
                                                                     />
                                                                 </td>
                                                             )}
-                                                            <td className="px-4 py-3">{useCase.category}</td>
-                                                            <td className="px-4 py-3">{useCase.name}</td>
-                                                            <td className="px-4 py-3 capitalize">{useCase.channel}</td>
-                                                            <td className="px-4 py-3">
+                                                            <td className="px-2 py-1 text-xs">{useCase.category}</td>
+                                                            <td className="px-2 py-1 text-xs">{useCase.name}</td>
+                                                            <td className="px-2 py-1 text-xs capitalize">{useCase.channel}</td>
+                                                            <td className="px-2 py-1 text-xs">
                                                                 <select
                                                                     value={useCase.specialGroup || ''}
                                                                     onChange={(e) => {
@@ -7658,16 +7657,16 @@
                                                                     ))}
                                                                 </select>
                                                             </td>
-                                                            <td className="px-4 py-3">
-                                                                <div className="space-y-1">
+                                                            <td className="px-1 py-1 text-xs">
+                                                                <div className="space-y-0.5">
                                                                     {normalizedUseCase.benefits.map((benefit, benefitIndex) => (
-                                                                        <div key={benefitIndex} className="text-xs p-1 bg-blue-50 rounded flex justify-between items-center">
-                                                                            <span className="text-blue-700 font-medium">{benefit.metric}</span>
-                                                                            <span className="text-gray-600">({benefit.baselineValue})</span>
+                                                                        <div key={benefitIndex} className="text-[9px] px-1 py-0.5 bg-blue-50 rounded flex justify-between items-center">
+                                                                            <span className="text-blue-700 font-medium truncate">{benefit.metric.split('(')[0].trim()}</span>
+                                                                            <span className="text-gray-600 ml-1">{benefit.baselineValue}</span>
                                                                         </div>
                                                                     ))}
                                                                     {normalizedUseCase.benefits.length === 0 && (
-                                                                        <span className="text-gray-400 text-xs">No benefits defined</span>
+                                                                        <span className="text-gray-400 text-[9px]">None</span>
                                                                     )}
                                                                 </div>
                                                             </td>
@@ -7678,10 +7677,10 @@
                                                                 return (
                                                                     <td 
                                                                         key={month.id} 
-                                                                        className="px-2 py-2 relative"
+                                                                        className="px-1 py-1 relative"
                                                                         onPaste={(e) => bulkEditMode && handlePaste(e, index, months.findIndex(m => m.id === month.id))}
                                                                     >
-                                                                        <div className="space-y-2">
+                                                                        <div className="space-y-1">
                                                                             {/* Benefit-specific Volume and Improvement Inputs */}
                                                                             {normalizedUseCase.benefits.length === 0 ? (
                                                                                 <div className="text-xs text-gray-400 italic p-2">
@@ -7700,36 +7699,36 @@
                                                                                     const benefitSavings = calculateBenefitSavings(normalizedUseCase, benefit, monthData, benefitIndex);
                                                                                     
                                                                                     return (
-                                                                                        <div key={`${benefit.metric}-${benefitIndex}`} className="p-2 bg-gray-50 rounded-md border border-gray-200">
-                                                                                            <div className="text-[10px] font-semibold text-blue-600 mb-1">
+                                                                                        <div key={`${benefit.metric}-${benefitIndex}`} className="p-1 bg-gray-50 rounded border border-gray-200">
+                                                                                            <div className="text-[9px] font-semibold text-blue-600">
                                                                                                 {benefit.metric}
                                                                                             </div>
-                                                                                            <div className="space-y-1">
+                                                                                            <div className="grid grid-cols-2 gap-x-1 gap-y-0.5">
                                                                                                 {/* Volume Input for this benefit */}
-                                                                                                <div className="flex gap-1 items-center">
-                                                                                                    <label className="text-[9px] text-gray-600 min-w-[45px]">{volumeLabel}:</label>
+                                                                                                <div className="flex items-center">
+                                                                                                    <label className="text-[8px] text-gray-600 mr-1" title={volumeLabel}>{volumeLabel.substring(0,4)}:</label>
                                                                                                     <input
                                                                                                         type="number"
                                                                                                         placeholder="0"
                                                                                                         value={monthData[volumeFieldKey] || ''}
                                                                                                         data-field-key={volumeFieldKey}
                                                                                                         onChange={(e) => updateUseCaseData(useCase.id, month.id, volumeFieldKey, e.target.value)}
-                                                                                                        className={`flex-1 px-1 py-0.5 text-xs border rounded ${
+                                                                                                        className={`w-full px-0.5 py-0 text-[10px] border rounded ${
                                                                                                             unsavedChanges.has(`${useCase.id}-${month.id}-${volumeFieldKey}`) ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'
                                                                                                         }`}
                                                                                                         title={`Number of ${volumeLabel} for ${benefit.metric}`}
                                                                                                     />
                                                                                                 </div>
                                                                                                 {/* Improvement Input for this benefit */}
-                                                                                                <div className="flex gap-1 items-center">
-                                                                                                    <label className="text-[9px] text-gray-600 min-w-[45px]">Impact:</label>
+                                                                                                <div className="flex items-center">
+                                                                                                    <label className="text-[8px] text-gray-600 mr-1">Imp:</label>
                                                                                                     <input
                                                                                                         type="number"
                                                                                                         placeholder={benefit.metric.includes('min') ? '0 min' : benefit.metric.includes('points') ? '0 pts' : '0%'}
                                                                                                         value={monthData[improvementFieldKey] || ''}
                                                                                                         data-field-key={improvementFieldKey}
                                                                                                         onChange={(e) => updateUseCaseData(useCase.id, month.id, improvementFieldKey, e.target.value)}
-                                                                                                        className={`flex-1 px-1 py-0.5 text-xs border rounded ${
+                                                                                                        className={`w-full px-0.5 py-0 text-[10px] border rounded ${
                                                                                                             unsavedChanges.has(`${useCase.id}-${month.id}-${improvementFieldKey}`) ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'
                                                                                                         }`}
                                                                                                         title={`Improvement value for ${benefit.metric}`}
@@ -7737,8 +7736,8 @@
                                                                                                 </div>
                                                                                                 {/* Inline per-benefit subtotal when multiple benefits */}
                                                                                                 {normalizedUseCase.benefits.length > 1 && (
-                                                                                                    <div className="text-[10px] text-green-700 font-semibold text-right">
-                                                                                                        ${Math.round(benefitSavings).toLocaleString()}
+                                                                                                    <div className="col-span-2 text-[9px] text-green-700 font-semibold text-right">
+                                                                                                        = ${Math.round(benefitSavings).toLocaleString()}
                                                                                                     </div>
                                                                                                 )}
                                                                                             </div>
@@ -7776,7 +7775,7 @@
                                                                     </td>
                                                                 );
                                                             })}
-                                                            <td className="px-4 py-3">
+                                                            <td className="px-2 py-1 text-xs">
                                                                 <div className="font-bold text-green-600">
                                                                     ${Math.round(totalSavings).toLocaleString()}
                                                                 </div>
@@ -7791,8 +7790,8 @@
                                                                     </div>
                                                                 )}
                                                             </td>
-                                                            <td className="px-4 py-3">
-                                                                <div className="flex gap-1">
+                                                            <td className="px-1 py-1">
+                                                                <div className="flex gap-0.5">
                                                                     {/* Edit Use Case */}
                                                                     <button
                                                                         onClick={() => {
