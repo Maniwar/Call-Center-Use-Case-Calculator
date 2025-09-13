@@ -7586,9 +7586,9 @@
                                                     <th className="px-2 py-2 text-left text-xs">Special Group</th>
                                                     <th className="px-2 py-2 text-left text-xs">Benefits</th>
                                                     {months.map(month => (
-                                                        <th key={month.id} className="px-1 py-1 text-center min-w-[90px]">
-                                                            <div className="text-[10px] font-semibold">{month.month.substring(0, 3)}</div>
-                                                            <div className="text-[9px] text-gray-500">{month.year}</div>
+                                                        <th key={month.id} className="px-2 py-2 text-center min-w-[140px]">
+                                                            <div className="text-xs font-semibold">{month.month.substring(0, 3)}</div>
+                                                            <div className="text-[10px] text-gray-500">{month.year}</div>
                                                             {bulkEditMode && (
                                                                 <div className="text-[8px] opacity-75">Paste</div>
                                                             )}
@@ -7619,7 +7619,7 @@
                                                     return (
                                                         <tr key={useCase.id} className={`${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'} ${selectedUseCases.has(useCase.id) ? 'ring-2 ring-blue-300 bg-blue-50' : ''}`}>
                                                             {bulkEditMode && (
-                                                                <td className="px-2 py-1 text-center">
+                                                                <td className="px-2 py-1.5 text-center">
                                                                     <input
                                                                         type="checkbox"
                                                                         checked={selectedUseCases.has(useCase.id)}
@@ -7636,10 +7636,10 @@
                                                                     />
                                                                 </td>
                                                             )}
-                                                            <td className="px-2 py-1 text-xs">{useCase.category}</td>
-                                                            <td className="px-2 py-1 text-xs">{useCase.name}</td>
-                                                            <td className="px-2 py-1 text-xs capitalize">{useCase.channel}</td>
-                                                            <td className="px-2 py-1 text-xs">
+                                                            <td className="px-2 py-1.5 text-xs">{useCase.category}</td>
+                                                            <td className="px-2 py-1.5 text-xs">{useCase.name}</td>
+                                                            <td className="px-2 py-1.5 text-xs capitalize">{useCase.channel}</td>
+                                                            <td className="px-2 py-1.5 text-xs">
                                                                 <select
                                                                     value={useCase.specialGroup || ''}
                                                                     onChange={(e) => {
@@ -7657,12 +7657,12 @@
                                                                     ))}
                                                                 </select>
                                                             </td>
-                                                            <td className="px-1 py-1 text-xs">
+                                                            <td className="px-2 py-1.5 text-xs">
                                                                 <div className="space-y-0.5">
                                                                     {normalizedUseCase.benefits.map((benefit, benefitIndex) => (
-                                                                        <div key={benefitIndex} className="text-[9px] px-1 py-0.5 bg-blue-50 rounded flex justify-between items-center">
+                                                                        <div key={benefitIndex} className="text-[10px] px-1 py-0.5 bg-blue-50 rounded flex justify-between items-center">
                                                                             <span className="text-blue-700 font-medium truncate">{benefit.metric.split('(')[0].trim()}</span>
-                                                                            <span className="text-gray-600 ml-1">{benefit.baselineValue}</span>
+                                                                            <span className="text-gray-600 ml-1 text-[9px]">{benefit.baselineValue}</span>
                                                                         </div>
                                                                     ))}
                                                                     {normalizedUseCase.benefits.length === 0 && (
@@ -7677,7 +7677,7 @@
                                                                 return (
                                                                     <td 
                                                                         key={month.id} 
-                                                                        className="px-1 py-1 relative"
+                                                                        className="px-2 py-1.5 relative min-w-[140px]"
                                                                         onPaste={(e) => bulkEditMode && handlePaste(e, index, months.findIndex(m => m.id === month.id))}
                                                                     >
                                                                         <div className="space-y-1">
@@ -7699,36 +7699,36 @@
                                                                                     const benefitSavings = calculateBenefitSavings(normalizedUseCase, benefit, monthData, benefitIndex);
                                                                                     
                                                                                     return (
-                                                                                        <div key={`${benefit.metric}-${benefitIndex}`} className="p-1 bg-gray-50 rounded border border-gray-200">
-                                                                                            <div className="text-[9px] font-semibold text-blue-600">
+                                                                                        <div key={`${benefit.metric}-${benefitIndex}`} className="p-1.5 bg-gray-50 rounded border border-gray-200">
+                                                                                            <div className="text-[10px] font-semibold text-blue-600 mb-1">
                                                                                                 {benefit.metric}
                                                                                             </div>
-                                                                                            <div className="grid grid-cols-2 gap-x-1 gap-y-0.5">
+                                                                                            <div className="space-y-1">
                                                                                                 {/* Volume Input for this benefit */}
-                                                                                                <div className="flex items-center">
-                                                                                                    <label className="text-[8px] text-gray-600 mr-1" title={volumeLabel}>{volumeLabel.substring(0,4)}:</label>
+                                                                                                <div className="flex items-center gap-1">
+                                                                                                    <label className="text-[10px] text-gray-600 min-w-[50px]" title={volumeLabel}>{volumeLabel}:</label>
                                                                                                     <input
                                                                                                         type="number"
                                                                                                         placeholder="0"
                                                                                                         value={monthData[volumeFieldKey] || ''}
                                                                                                         data-field-key={volumeFieldKey}
                                                                                                         onChange={(e) => updateUseCaseData(useCase.id, month.id, volumeFieldKey, e.target.value)}
-                                                                                                        className={`w-full px-0.5 py-0 text-[10px] border rounded ${
+                                                                                                        className={`flex-1 px-1 py-0.5 text-xs border rounded ${
                                                                                                             unsavedChanges.has(`${useCase.id}-${month.id}-${volumeFieldKey}`) ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'
                                                                                                         }`}
                                                                                                         title={`Number of ${volumeLabel} for ${benefit.metric}`}
                                                                                                     />
                                                                                                 </div>
                                                                                                 {/* Improvement Input for this benefit */}
-                                                                                                <div className="flex items-center">
-                                                                                                    <label className="text-[8px] text-gray-600 mr-1">Imp:</label>
+                                                                                                <div className="flex items-center gap-1">
+                                                                                                    <label className="text-[10px] text-gray-600 min-w-[50px]">Impact:</label>
                                                                                                     <input
                                                                                                         type="number"
                                                                                                         placeholder={benefit.metric.includes('min') ? '0 min' : benefit.metric.includes('points') ? '0 pts' : '0%'}
                                                                                                         value={monthData[improvementFieldKey] || ''}
                                                                                                         data-field-key={improvementFieldKey}
                                                                                                         onChange={(e) => updateUseCaseData(useCase.id, month.id, improvementFieldKey, e.target.value)}
-                                                                                                        className={`w-full px-0.5 py-0 text-[10px] border rounded ${
+                                                                                                        className={`flex-1 px-1 py-0.5 text-xs border rounded ${
                                                                                                             unsavedChanges.has(`${useCase.id}-${month.id}-${improvementFieldKey}`) ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'
                                                                                                         }`}
                                                                                                         title={`Improvement value for ${benefit.metric}`}
@@ -7736,7 +7736,7 @@
                                                                                                 </div>
                                                                                                 {/* Inline per-benefit subtotal when multiple benefits */}
                                                                                                 {normalizedUseCase.benefits.length > 1 && (
-                                                                                                    <div className="col-span-2 text-[9px] text-green-700 font-semibold text-right">
+                                                                                                    <div className="text-[10px] text-green-700 font-semibold text-right mt-1">
                                                                                                         = ${Math.round(benefitSavings).toLocaleString()}
                                                                                                     </div>
                                                                                                 )}
@@ -7775,7 +7775,7 @@
                                                                     </td>
                                                                 );
                                                             })}
-                                                            <td className="px-2 py-1 text-xs">
+                                                            <td className="px-2 py-1.5 text-xs">
                                                                 <div className="font-bold text-green-600">
                                                                     ${Math.round(totalSavings).toLocaleString()}
                                                                 </div>
@@ -7790,7 +7790,7 @@
                                                                     </div>
                                                                 )}
                                                             </td>
-                                                            <td className="px-1 py-1">
+                                                            <td className="px-2 py-1.5">
                                                                 <div className="flex gap-0.5">
                                                                     {/* Edit Use Case */}
                                                                     <button
