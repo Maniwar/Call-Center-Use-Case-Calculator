@@ -1,6 +1,6 @@
 # AI Contact Center ROI Calculator
 
-A comprehensive, single‑file HTML application for evaluating AI ROI in contact centers. It includes advanced cost modeling with nested special groups, agent utilization and AHT handling, powerful bulk editing, spreadsheet‑style paste, undo/redo, templates, and multi‑dimensional analytics with interactive charts and detailed CSV exports.
+A comprehensive, single‑file HTML application for evaluating AI ROI in contact centers. It includes advanced cost modeling with nested special groups, agent utilization and AHT handling, powerful bulk editing, spreadsheet‑style paste, undo/redo, templates, multi‑dimensional analytics with interactive charts, complete financial analysis with NPV/IRR/ROI calculations, and detailed CSV/Excel exports.
 
 ## Features
 
@@ -27,26 +27,45 @@ A comprehensive, single‑file HTML application for evaluating AI ROI in contact
     - Adjust: add/subtract deltas
     - Gradual: start→end over months with curve types
       - Curves: Linear, Exponential, Stepped, Custom Milestones (e.g., months 3/6/9)
-  - Per‑metric “apply” buttons: Volume only, Improvement only, or Both
+  - Per‑metric "apply" buttons: Volume only, Improvement only, or Both
 - Spreadsheet‑style paste: paste volume + improvements directly from Excel/Sheets (Ctrl/Cmd+V)
-- Undo/Redo: keyboard shortcuts (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z or Y)
+- Undo/Redo: keyboard shortcuts (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z or Y) - now with deep copy support
 - Select‑all: Ctrl/Cmd+A in bulk edit
 - Visual hints for unsaved changes and quick‑action buttons per cell
+
+### 🎯 In-Table Editing
+- **Direct Category Selection**: Change categories via dropdown without opening modals
+- **Direct Channel Selection**: Change channels with real-time cost display
+- **Cost Transparency**: See "Cost: $X.XX/contact" directly under channel dropdowns
+- **Special Group Selection**: Modify special groups inline
+- **Full Undo/Redo Support**: All inline changes tracked in history
 
 ### 🧪 Templates
 - Save the current set of use cases (structure only, without data values) as a named template
 - Load or delete templates from the UI to bootstrap scenarios quickly
 
 ### 📈 Analytics & Reporting
-- Views: Overall, Category, Channel, Use Case, Special Group
+- Views: Overall, Category, Channel, Use Case, Special Group, Benefit/Metric
 - Charts: monthly trend, cumulative savings, distributions, and rankings
 - Filters: Category, Channel, Special Group, Metric; custom analytics date range
-- “Top contributor” and benefit‑level breakdowns per use case
-- CSV export of current analytics view and comprehensive multi‑section CSV export covering:
+- "Top contributor" and benefit‑level breakdowns per use case
+- CSV and Excel exports with live formulas that auto-calculate
+- Comprehensive multi‑section exports covering:
   - Multi‑benefit calculations per use case and month (with formulas, costs, and value‑driver types)
   - Per‑benefit input snapshots and step‑by‑step calculation details
   - Monthly totals, category totals, channel totals, special‑group summaries
   - Use case rankings, performance tables, and contribution breakdowns
+
+### 💰 Financial Analysis
+- **NPV (Net Present Value)**: Calculate present value with configurable discount rate (8-15% typical)
+- **IRR (Internal Rate of Return)**: Determine the rate at which NPV equals zero
+- **ROI Percentage**: Total return on investment over the analysis period
+- **Payback Period**: Months to recover initial investment
+- **Cash Flow Analysis**: Monthly and cumulative cash flow visualizations
+- **Break-Even Analysis**: Visual indicators showing when investment is recovered
+- **Implementation Costs**: Fixed amount or percentage of first-year savings
+- **Ongoing Costs**: Monthly operational costs with flexible billing cycles
+- **WACC Guidance**: Built-in help for determining appropriate discount rates
 
 ### 💾 Data Management
 - Auto‑save to localStorage
@@ -55,7 +74,10 @@ A comprehensive, single‑file HTML application for evaluating AI ROI in contact
 
 ### 📖 User Experience
 - Input Guidance tab with industry benchmarks and best practices for each metric
+- Data Templates and Quick Reference Guide positioned for optimal workflow
 - Responsive design and keyboard‑friendly editing
+- Sticky headers and columns for easy navigation in large datasets
+- Real-time cost calculations and visual feedback
 
 ## Quick Start
 
@@ -186,13 +208,24 @@ Save the current use‑case structure as a template (no data values). Load a tem
 ### Analysis & Reporting
 6. **Review Analytics**
    - Switch to **Analytics** tab for interactive charts
-   - View by **Category**, **Channel**, **Use Case**, or **Special Group**
+   - View by **Category**, **Channel**, **Use Case**, **Special Group**, or **Benefit/Metric**
    - Apply filters to focus on specific time periods or segments
+   - Analyze trends, distributions, and top contributors
 
-7. **Export Results**
+7. **Financial Analysis**
+   - Navigate to **Financial Analysis** tab for investment metrics
+   - Configure **discount rate** (WACC guidance provided)
+   - Set **implementation costs** (fixed or percentage-based)
+   - Add **ongoing monthly costs** if applicable
+   - Review NPV, IRR, ROI, and payback period
+   - Examine cash flow charts and break-even timeline
+
+8. **Export Results**
    - Generate detailed **CSV reports** with calculation transparency
+   - Export to **Excel with live formulas** that auto-calculate
    - Download **JSON backups** for data portability
    - Reports show cost sources, formulas, and utilization factors
+   - Financial metrics included in comprehensive exports
 
 ### Advanced Features
 - Edit Use Cases: modify category, channel, benefits, and baselines at any time
