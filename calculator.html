@@ -6619,15 +6619,18 @@
 
             const exportToJSON = () => {
                 const dataToExport = {
+                    categories,
                     channelCosts,
                     categoryCosts,
                     useCases,
                     dateRange,
+                    financialSettings,
+                    ahtNegotiationMode,
                     // defaultAHT and agentUtilization removed - now in category config
                     metricValues,
                     dataTemplates,
                     exportDate: new Date().toISOString(),
-                    version: '4.0',
+                    version: '4.1',
                     description: 'Multi-benefit AI ROI calculator backup with quality metrics support',
                     features: {
                         multiBenefitSupport: true,
@@ -6659,6 +6662,10 @@
                             const importSummary = [];
                             
                             // Import core data
+                            if (importedData.categories) {
+                                setCategories(importedData.categories);
+                                importSummary.push(`${importedData.categories.length} categories`);
+                            }
                             if (importedData.channelCosts) {
                                 setChannelCosts(importedData.channelCosts);
                                 importSummary.push(`${Object.keys(importedData.channelCosts).length} channel costs`);
@@ -6690,6 +6697,17 @@
                             if (importedData.dataTemplates) {
                                 setDataTemplates(importedData.dataTemplates);
                                 importSummary.push(`${Object.keys(importedData.dataTemplates).length} data templates`);
+                            }
+                            if (importedData.financialSettings) {
+                                setFinancialSettings(importedData.financialSettings);
+                                const hasCategoryBilling = importedData.financialSettings.useCategoryBilling ? 'category-based' : 'global';
+                                importSummary.push(`Financial settings (${hasCategoryBilling} billing)`);
+                            }
+                            if (typeof importedData.ahtNegotiationMode === 'boolean') {
+                                setAhtNegotiationMode(importedData.ahtNegotiationMode);
+                                if (importedData.ahtNegotiationMode) {
+                                    importSummary.push('AHT negotiation mode enabled');
+                                }
                             }
                             
                             // Show detailed import summary
