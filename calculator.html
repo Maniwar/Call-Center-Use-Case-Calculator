@@ -111,6 +111,252 @@
             }
         }
         
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            /* Mobile layout adjustments */
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            
+            /* Mobile navigation */
+            .mobile-nav-toggle {
+                display: block !important;
+            }
+            
+            .desktop-only {
+                display: none !important;
+            }
+            
+            .mobile-only {
+                display: block !important;
+            }
+            
+            /* Mobile tabs - horizontal scroll */
+            .tab-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                white-space: nowrap;
+                padding-bottom: 4px;
+            }
+            
+            .tab-container::-webkit-scrollbar {
+                height: 4px;
+            }
+            
+            /* Mobile cards stack */
+            .stats-grid {
+                grid-template-columns: 1fr !important;
+                gap: 0.5rem !important;
+            }
+            
+            /* Mobile table */
+            .mobile-table-wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -1rem;
+                padding: 0 1rem;
+            }
+            
+            table {
+                min-width: 600px;
+            }
+            
+            /* Mobile inputs */
+            input[type="number"],
+            input[type="text"],
+            select {
+                font-size: 16px !important; /* Prevents zoom on iOS */
+                min-height: 44px; /* Touch-friendly size */
+            }
+            
+            /* Mobile buttons */
+            button {
+                min-height: 44px;
+                min-width: 44px;
+                touch-action: manipulation;
+            }
+            
+            /* Mobile modals */
+            .modal-content {
+                width: 95% !important;
+                max-width: none !important;
+                margin: 1rem !important;
+                max-height: 90vh !important;
+                padding: 1rem !important;
+            }
+            
+            /* Mobile charts */
+            .chart-container {
+                height: 250px !important;
+            }
+            
+            /* Mobile tooltips */
+            .tooltip .tooltiptext {
+                width: 90vw !important;
+                left: 5vw !important;
+                margin-left: 0 !important;
+                bottom: 100% !important;
+            }
+            
+            /* Mobile filter buttons */
+            .filter-container {
+                flex-wrap: wrap !important;
+                gap: 0.5rem !important;
+            }
+            
+            .filter-btn {
+                flex: 1 1 calc(50% - 0.25rem) !important;
+                min-width: 120px !important;
+                font-size: 12px !important;
+            }
+            
+            /* Mobile header controls */
+            .header-controls {
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }
+            
+            .header-buttons {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.5rem !important;
+                width: 100% !important;
+            }
+            
+            /* Mobile date inputs */
+            .date-range-container {
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }
+            
+            /* Mobile settings grid */
+            .settings-grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Mobile bulk edit */
+            .bulk-edit-controls {
+                flex-direction: column !important;
+                position: sticky !important;
+                bottom: 0 !important;
+                background: white !important;
+                padding: 1rem !important;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+                z-index: 100 !important;
+            }
+            
+            /* Mobile table cells */
+            td, th {
+                padding: 6px 4px !important;
+                font-size: 12px !important;
+            }
+            
+            /* Mobile-friendly spacing */
+            .p-6 {
+                padding: 1rem !important;
+            }
+            
+            .p-4 {
+                padding: 0.75rem !important;
+            }
+            
+            .mb-6 {
+                margin-bottom: 1rem !important;
+            }
+            
+            .gap-6 {
+                gap: 1rem !important;
+            }
+            
+            /* Mobile sponsor button */
+            .sponsor-btn-mobile {
+                position: fixed !important;
+                bottom: 20px !important;
+                right: 20px !important;
+                z-index: 999 !important;
+                border-radius: 50% !important;
+                width: 56px !important;
+                height: 56px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            }
+            
+            /* Mobile floating action button */
+            .fab-container {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 998;
+            }
+            
+            .fab {
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                transition: transform 0.2s;
+            }
+            
+            .fab:active {
+                transform: scale(0.95);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            /* Extra small devices */
+            .header-buttons {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .filter-btn {
+                flex: 1 1 100% !important;
+            }
+            
+            /* Stack stats vertically on very small screens */
+            .stats-row {
+                flex-direction: column !important;
+            }
+            
+            /* Full-width modals on small screens */
+            .modal-content {
+                width: 100% !important;
+                height: 100% !important;
+                max-height: 100vh !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+            }
+        }
+        
+        /* Touch-friendly hover states */
+        @media (hover: none) and (pointer: coarse) {
+            .tooltip:hover .tooltiptext {
+                visibility: hidden;
+            }
+            
+            .bulk-edit-cell:hover .quick-actions {
+                opacity: 1;
+            }
+            
+            button:hover {
+                transform: none;
+            }
+        }
+        
+        /* Hide mobile elements on desktop */
+        .mobile-only {
+            display: none;
+        }
+        
+        .mobile-nav-toggle {
+            display: none;
+        }
+        
         /* Chart container styles */
         .chart-container {
             position: relative;
@@ -1445,6 +1691,19 @@
             const [lastSaved, setLastSaved] = useState(new Date());
             const [showSaveIndicator, setShowSaveIndicator] = useState(false);
             const [ahtNegotiationMode, setAhtNegotiationMode] = useState(false); // Toggle for AHT negotiation calculations
+            
+            // Mobile detection
+            const [isMobile, setIsMobile] = useState(false);
+            const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+            
+            useEffect(() => {
+                const checkMobile = () => {
+                    setIsMobile(window.innerWidth <= 768);
+                };
+                checkMobile();
+                window.addEventListener('resize', checkMobile);
+                return () => window.removeEventListener('resize', checkMobile);
+            }, []);
             // Global defaults removed - all configuration at category-channel level
             const defaultAHT = null; // Deprecated - use category-channel config
             const setDefaultAHT = () => {}; // No-op setter for backward compatibility
@@ -7098,7 +7357,7 @@
             };
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 lg:p-4">
+                <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 ${isMobile ? 'p-0' : 'p-2 lg:p-4'}`}>
                     {/* Sponsor Overlay */}
                     {showSponsorOverlay && (
                         <div className={`sponsor-overlay ${isClosingWithHearts ? 'closing' : ''}`} 
@@ -7216,8 +7475,8 @@
                             </div>
                             
                             {/* Tabs */}
-                            <div className="flex gap-2 mb-4 justify-between items-center">
-                                <div className="flex gap-2">
+                            <div className={`${isMobile ? 'flex flex-col gap-2' : 'flex gap-2 justify-between items-center'} mb-4`}>
+                                <div className={`${isMobile ? 'tab-container' : 'flex gap-2'}`}>
                                     <button
                                         onClick={() => setActiveTab('data')}
                                         className={`px-4 py-2 rounded-lg ${activeTab === 'data' ? 'tab-active' : 'tab-inactive'}`}
@@ -7243,21 +7502,23 @@
                                         Input Guidance
                                     </button>
                                 </div>
-                                <button
-                                    onClick={() => setShowSponsorOverlay(true)}
-                                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-200 shadow-sm"
-                                    title="Support this free tool with GitHub Sponsors"
-                                >
-                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                                    </svg>
-                                    <span>Sponsor</span>
-                                </button>
+                                {!isMobile && (
+                                    <button
+                                        onClick={() => setShowSponsorOverlay(true)}
+                                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-200 shadow-sm"
+                                        title="Support this free tool with GitHub Sponsors"
+                                    >
+                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                                        </svg>
+                                        <span>Sponsor</span>
+                                    </button>
+                                )}
                             </div>
                             
                             {/* Action Buttons */}
                             {activeTab === 'data' && (
-                                <div className="flex gap-3 items-center">
+                                <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'flex gap-3 items-center'}`}>
                                     <button
                                         onClick={exportToCSV}
                                         className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -7304,9 +7565,9 @@
                             )}
                             
                             {/* Summary Cards with Date Range */}
-                            <div className="flex gap-4 mt-4">
+                            <div className={`${isMobile ? 'flex flex-col gap-2' : 'flex gap-4'} mt-4`}>
                                 {/* Stats Cards */}
-                                <div className="grid grid-cols-4 gap-4 flex-1">
+                                <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-4'} flex-1`}>
                                     <div className="bg-blue-50 rounded-lg p-4">
                                         <p className="text-blue-600 text-sm">Use Cases</p>
                                         <p className="text-2xl font-bold">{useCases.length}</p>
@@ -10969,6 +11230,19 @@
                         
                         {/* Guidance Modal */}
                         <GuidanceModal />
+                        
+                        {/* Mobile Floating Sponsor Button */}
+                        {isMobile && (
+                            <button
+                                onClick={() => setShowSponsorOverlay(true)}
+                                className="sponsor-btn-mobile bg-gradient-to-r from-pink-500 to-purple-600 text-white"
+                                title="Support this free tool"
+                            >
+                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                                </svg>
+                            </button>
+                        )}
                         
                         {/* Edit Use Case Modal */}
                         {showEditModal && editingUseCase && (
