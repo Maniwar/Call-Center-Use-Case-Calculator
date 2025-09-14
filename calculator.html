@@ -99,12 +99,13 @@
             justify-content: center;
             align-items: center;
             z-index: 9999;
-            transition: opacity 1.5s ease-out;
+            transition: opacity 2s ease-out, transform 2s ease-out;
         }
         
         .loading-container.fade-out {
             opacity: 0;
             pointer-events: none;
+            transform: scale(1.05);
         }
         
         .spinner {
@@ -935,28 +936,27 @@
     </style>
 </head>
 <body>
-    <div id="root">
-        <div class="loading-container" id="loadingScreen">
-            <div class="floating-emojis">
-                <span class="emoji-float">💰</span>
-                <span class="emoji-float">🤖</span>
-                <span class="emoji-float">💝</span>
-                <span class="emoji-float">📞</span>
-                <span class="emoji-float">✉️</span>
-                <span class="emoji-float">💬</span>
-                <span class="emoji-float">🎯</span>
-                <span class="emoji-float">💵</span>
-                <span class="emoji-float">👨‍💼</span>
-                <span class="emoji-float">📊</span>
-                <span class="emoji-float">🚀</span>
-                <span class="emoji-float">💎</span>
-                <span class="emoji-float">🌟</span>
-                <span class="emoji-float">📈</span>
-                <span class="emoji-float">🏆</span>
-            </div>
-            <div class="spinner"></div>
-            <p class="loading-text">Loading AI ROI Calculator...</p>
+    <div id="root"></div>
+    <div class="loading-container" id="loadingScreen">
+        <div class="floating-emojis">
+            <span class="emoji-float">💰</span>
+            <span class="emoji-float">🤖</span>
+            <span class="emoji-float">💝</span>
+            <span class="emoji-float">📞</span>
+            <span class="emoji-float">✉️</span>
+            <span class="emoji-float">💬</span>
+            <span class="emoji-float">🎯</span>
+            <span class="emoji-float">💵</span>
+            <span class="emoji-float">👨‍💼</span>
+            <span class="emoji-float">📊</span>
+            <span class="emoji-float">🚀</span>
+            <span class="emoji-float">💎</span>
+            <span class="emoji-float">🌟</span>
+            <span class="emoji-float">📈</span>
+            <span class="emoji-float">🏆</span>
         </div>
+        <div class="spinner"></div>
+        <p class="loading-text">Loading AI ROI Calculator...</p>
     </div>
 
     <script type="text/babel">
@@ -11658,21 +11658,25 @@
         // Render the application with loading animation
         const root = ReactDOM.createRoot(document.getElementById('root'));
         
-        // Start fade out animation after a delay
-        setTimeout(() => {
-            const loadingScreen = document.getElementById('loadingScreen');
-            if (loadingScreen) {
-                loadingScreen.classList.add('fade-out');
-                // Remove loading screen completely after fade animation
-                setTimeout(() => {
-                    if (loadingScreen && loadingScreen.parentNode) {
-                        loadingScreen.parentNode.removeChild(loadingScreen);
-                    }
-                }, 1500);
-            }
-        }, 2000); // Show loading animation for 2 seconds before starting fade
-        
+        // Render the app immediately (it will be behind the loading screen)
         root.render(<AIValueCalculator />);
+        
+        // Start fade out animation after the app has loaded
+        window.addEventListener('load', () => {
+            // Give it a moment to ensure everything is rendered
+            setTimeout(() => {
+                const loadingScreen = document.getElementById('loadingScreen');
+                if (loadingScreen) {
+                    loadingScreen.classList.add('fade-out');
+                    // Remove loading screen completely after fade animation
+                    setTimeout(() => {
+                        if (loadingScreen && loadingScreen.parentNode) {
+                            loadingScreen.parentNode.removeChild(loadingScreen);
+                        }
+                    }, 2000); // Match the CSS transition duration
+                }
+            }, 1500); // Show loading animation for at least 1.5 seconds
+        });
     </script>
 </body>
 </html>
