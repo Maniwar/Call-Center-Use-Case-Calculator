@@ -1492,9 +1492,11 @@
                 totalROI: 0
             });
 
-            // Update months when date range changes
+            // Update months when date range changes and sync analytics date range
             useEffect(() => {
                 setMonths(generateMonthsFromRange(dateRange.start, dateRange.end));
+                // Also update analytics date range to match
+                setAnalyticsDateRange({ ...dateRange });
             }, [dateRange]);
 
             // Category management functions
