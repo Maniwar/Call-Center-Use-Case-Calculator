@@ -7122,27 +7122,50 @@
                                 </div>
                             )}
                             
-                            {/* Summary Cards */}
-                            <div className="grid grid-cols-4 gap-4 mt-4">
-                                <div className="bg-blue-50 rounded-lg p-4">
-                                    <p className="text-blue-600 text-sm">Use Cases</p>
-                                    <p className="text-2xl font-bold">{useCases.length}</p>
+                            {/* Summary Cards with Date Range */}
+                            <div className="flex gap-4 mt-4">
+                                {/* Stats Cards */}
+                                <div className="grid grid-cols-4 gap-4 flex-1">
+                                    <div className="bg-blue-50 rounded-lg p-4">
+                                        <p className="text-blue-600 text-sm">Use Cases</p>
+                                        <p className="text-2xl font-bold">{useCases.length}</p>
+                                    </div>
+                                    <div className="bg-green-50 rounded-lg p-4">
+                                        <p className="text-green-600 text-sm">Months</p>
+                                        <p className="text-2xl font-bold">{months.length}</p>
+                                    </div>
+                                    <div className="bg-purple-50 rounded-lg p-4">
+                                        <p className="text-purple-600 text-sm">Monthly Avg</p>
+                                        <p className="text-2xl font-bold">
+                                            ${months.length > 0 ? Math.round(calculateTotalSavings() / months.length).toLocaleString() : 0}
+                                        </p>
+                                    </div>
+                                    <div className="bg-yellow-50 rounded-lg p-4">
+                                        <p className="text-yellow-600 text-sm">Total Savings</p>
+                                        <p className="text-2xl font-bold">
+                                            ${Math.round(calculateTotalSavings()).toLocaleString()}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="bg-green-50 rounded-lg p-4">
-                                    <p className="text-green-600 text-sm">Months</p>
-                                    <p className="text-2xl font-bold">{months.length}</p>
-                                </div>
-                                <div className="bg-purple-50 rounded-lg p-4">
-                                    <p className="text-purple-600 text-sm">Monthly Avg</p>
-                                    <p className="text-2xl font-bold">
-                                        ${months.length > 0 ? Math.round(calculateTotalSavings() / months.length).toLocaleString() : 0}
-                                    </p>
-                                </div>
-                                <div className="bg-yellow-50 rounded-lg p-4">
-                                    <p className="text-yellow-600 text-sm">Total Savings</p>
-                                    <p className="text-2xl font-bold">
-                                        ${Math.round(calculateTotalSavings()).toLocaleString()}
-                                    </p>
+                                
+                                {/* Date Range Selector */}
+                                <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-4">
+                                    <Icons.Calendar className="text-gray-500" />
+                                    <input
+                                        type="month"
+                                        value={dateRange.start}
+                                        onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                                        className="px-2 py-1 text-sm border rounded bg-white"
+                                        title="Start Month"
+                                    />
+                                    <span className="text-sm text-gray-500">to</span>
+                                    <input
+                                        type="month"
+                                        value={dateRange.end}
+                                        onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                                        className="px-2 py-1 text-sm border rounded bg-white"
+                                        title="End Month"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -8421,37 +8444,8 @@
                                 <div className="bg-white rounded-lg shadow p-3 mb-4">
                                     <div className="flex gap-3 items-center justify-between">
                                         <div className="flex gap-3 items-center">
-                                            {/* Stats and Date Range */}
-                                            <div className="text-sm text-gray-600 flex items-center gap-3">
-                                                <span><strong>{useCases.length}</strong> Use Cases</span>
-                                                <span className="text-gray-400">|</span>
-                                                <span><strong>{months.length}</strong> Months</span>
-                                                <span className="text-gray-400">|</span>
-                                                <span><strong>${(calculateTotalSavings() / months.length || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong> Monthly Avg</span>
-                                            </div>
-                                            
-                                            {/* Date Range - Compact */}
-                                            <div className="flex items-center gap-2 border-l pl-3">
-                                                <Icons.Calendar className="text-gray-500 w-4 h-4" />
-                                                <input
-                                                    type="month"
-                                                    value={dateRange.start}
-                                                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                                                    className="px-2 py-1 text-sm border rounded"
-                                                    title="Start Month"
-                                                />
-                                                <span className="text-xs text-gray-500">to</span>
-                                                <input
-                                                    type="month"
-                                                    value={dateRange.end}
-                                                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                                                    className="px-2 py-1 text-sm border rounded"
-                                                    title="End Month"
-                                                />
-                                            </div>
-                                            
                                             {/* Bulk Edit Mode Toggle */}
-                                            <div className="flex items-center gap-2 border-l pl-3">
+                                            <div className="flex items-center gap-2">
                                                 <input
                                                     type="checkbox"
                                                     id="bulkEditMode"
