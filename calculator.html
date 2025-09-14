@@ -86,19 +86,103 @@
             background: #555;
         }
         
-        /* Loading spinner */
+        /* Enhanced loading animation */
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 1.5s ease-out;
+        }
+        
+        .loading-container.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
         .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #3B82F6;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-left-color: #ffffff;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 60px;
+            height: 60px;
             animation: spin 1s linear infinite;
-            margin: 100px auto;
+            z-index: 2;
+            position: relative;
         }
         
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+        
+        .floating-emojis {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        .emoji-float {
+            position: absolute;
+            font-size: 24px;
+            animation: float-up 8s linear infinite;
+            opacity: 0.8;
+        }
+        
+        @keyframes float-up {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.8;
+            }
+            90% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .emoji-float:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 7s; }
+        .emoji-float:nth-child(2) { left: 20%; animation-delay: 0.5s; animation-duration: 9s; }
+        .emoji-float:nth-child(3) { left: 30%; animation-delay: 1s; animation-duration: 6s; }
+        .emoji-float:nth-child(4) { left: 40%; animation-delay: 1.5s; animation-duration: 8s; }
+        .emoji-float:nth-child(5) { left: 50%; animation-delay: 2s; animation-duration: 7.5s; }
+        .emoji-float:nth-child(6) { left: 60%; animation-delay: 2.5s; animation-duration: 9.5s; }
+        .emoji-float:nth-child(7) { left: 70%; animation-delay: 3s; animation-duration: 6.5s; }
+        .emoji-float:nth-child(8) { left: 80%; animation-delay: 3.5s; animation-duration: 8.5s; }
+        .emoji-float:nth-child(9) { left: 90%; animation-delay: 4s; animation-duration: 7s; }
+        .emoji-float:nth-child(10) { left: 15%; animation-delay: 4.5s; animation-duration: 10s; }
+        .emoji-float:nth-child(11) { left: 25%; animation-delay: 5s; animation-duration: 6s; }
+        .emoji-float:nth-child(12) { left: 35%; animation-delay: 5.5s; animation-duration: 8s; }
+        .emoji-float:nth-child(13) { left: 45%; animation-delay: 6s; animation-duration: 9s; }
+        .emoji-float:nth-child(14) { left: 55%; animation-delay: 6.5s; animation-duration: 7s; }
+        .emoji-float:nth-child(15) { left: 65%; animation-delay: 7s; animation-duration: 8s; }
+        
+        .loading-text {
+            color: white;
+            font-size: 20px;
+            margin-top: 30px;
+            font-weight: 500;
+            z-index: 2;
+            position: relative;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
         
         /* Print styles */
@@ -849,8 +933,27 @@
 </head>
 <body>
     <div id="root">
-        <div class="spinner"></div>
-        <p style="text-align: center; margin-top: 20px; color: white;">Loading AI ROI Calculator...</p>
+        <div class="loading-container" id="loadingScreen">
+            <div class="floating-emojis">
+                <span class="emoji-float">💰</span>
+                <span class="emoji-float">🤖</span>
+                <span class="emoji-float">💝</span>
+                <span class="emoji-float">📞</span>
+                <span class="emoji-float">✉️</span>
+                <span class="emoji-float">💬</span>
+                <span class="emoji-float">🎯</span>
+                <span class="emoji-float">💵</span>
+                <span class="emoji-float">👨‍💼</span>
+                <span class="emoji-float">📊</span>
+                <span class="emoji-float">🚀</span>
+                <span class="emoji-float">💎</span>
+                <span class="emoji-float">🌟</span>
+                <span class="emoji-float">📈</span>
+                <span class="emoji-float">🏆</span>
+            </div>
+            <div class="spinner"></div>
+            <p class="loading-text">Loading AI ROI Calculator...</p>
+        </div>
     </div>
 
     <script type="text/babel">
@@ -11549,8 +11652,23 @@
             );
         };
 
-        // Render the application
+        // Render the application with loading animation
         const root = ReactDOM.createRoot(document.getElementById('root'));
+        
+        // Start fade out animation after a delay
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) {
+                loadingScreen.classList.add('fade-out');
+                // Remove loading screen completely after fade animation
+                setTimeout(() => {
+                    if (loadingScreen && loadingScreen.parentNode) {
+                        loadingScreen.parentNode.removeChild(loadingScreen);
+                    }
+                }, 1500);
+            }
+        }, 2000); // Show loading animation for 2 seconds before starting fade
+        
         root.render(<AIValueCalculator />);
     </script>
 </body>
