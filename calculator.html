@@ -40,6 +40,26 @@
             box-sizing: border-box;
         }
         
+        /* Alternating row colors */
+        .row-even {
+            background-color: #ffffff !important;
+        }
+        .row-odd {
+            background-color: #f9fafb !important;
+        }
+        .row-selected {
+            background-color: #dbeafe !important;
+        }
+        .row-even td {
+            background-color: inherit !important;
+        }
+        .row-odd td {
+            background-color: inherit !important;
+        }
+        .row-selected td {
+            background-color: inherit !important;
+        }
+        
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -962,92 +982,34 @@
                     const savedData = localStorage.getItem('aiValueCalculatorData');
                     if (savedData) {
                         const parsed = JSON.parse(savedData);
+                        // Ensure each category has metric values
+                        const categoryCosts = parsed.categoryCosts || {};
+                        const categories = parsed.categories || ['Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'];
+                        
+                        // Initialize metric values for categories that don't have them
+                        categories.forEach(category => {
+                            if (!categoryCosts[category]) {
+                                categoryCosts[category] = {};
+                            }
+                            if (!categoryCosts[category].metricValues) {
+                                categoryCosts[category].metricValues = {
+                                    npsImprovement: { value: 50, label: 'Value per NPS Point ($)' },
+                                    csatImprovement: { value: 25, label: 'Value per CSAT Point ($)' },
+                                    fcrImprovement: { value: 15, label: 'Value per FCR % Improvement ($)' },
+                                    conversionRate: { value: 200, label: 'Average Deal Value ($)' },
+                                    agentRetention: { value: 5000, label: 'Agent Replacement Cost ($)' },
+                                    complianceRate: { value: 1000, label: 'Cost per Compliance Violation ($)' }
+                                };
+                            }
+                        });
+                        
                         return {
-                            categories: parsed.categories || ['Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'],
-                            channelCosts: parsed.channelCosts || ALL_CHANNELS.reduce((acc, ch) => {
-                                // Support both old format (number) and new format (object)
-                                if (typeof parsed.channelCosts?.[ch.id] === 'object') {
-                                    acc[ch.id] = parsed.channelCosts[ch.id];
-                                } else {
-                                    acc[ch.id] = {
-                                        costType: 'perContact',
-                                        value: parsed.channelCosts?.[ch.id] || ch.defaultCost,
-                                        ahtMinutes: ch.defaultAHT
-                                    };
-                                }
-                                return acc;
-                            }, {}),
-                            // Add AHT minutes support; if missing in stored data, UI will fall back to defaultAHT
-                            categoryCosts: parsed.categoryCosts || {
-                                'Pre-Sales': { 
-                                    phone: {
-                                        _default: { costType: 'perContact', value: 6.00, ahtMinutes: 12 },
-                                        _specialGroups: {
-                                            'Senior Sales': { costType: 'perContact', value: 8.00, ahtMinutes: 10 }
-                                        }
-                                    },
-                                    chat: {
-                                        _default: { costType: 'perContact', value: 4.50, ahtMinutes: 8 }
-                                    },
-                                    sms: {
-                                        _default: { costType: 'perContact', value: 1.50, ahtMinutes: 3 }
-                                    }
-                                },
-                                'Order Support': { 
-                                    phone: {
-                                        _default: { costType: 'perContact', value: 7.00, ahtMinutes: 12 },
-                                        _specialGroups: {
-                                            'Tier 1': { costType: 'perContact', value: 5.50, ahtMinutes: 14 }
-                                        }
-                                    },
-                                    sms: {
-                                        _default: { costType: 'perContact', value: 1.50, ahtMinutes: 3 }
-                                    }
-                                },
-                                'Technical Support': { 
-                                    phone: {
-                                        _default: { costType: 'hourly', value: 40.00, ahtMinutes: 15 },
-                                        _specialGroups: {
-                                            'Specialists': { costType: 'hourly', value: 50.00, ahtMinutes: 20 },
-                                            'Tier 1': { costType: 'hourly', value: 30.00, ahtMinutes: 12 }
-                                        }
-                                    },
-                                    chat: {
-                                        _default: { costType: 'hourly', value: 30.00, ahtMinutes: 8 },
-                                        _specialGroups: {
-                                            'Specialists': { costType: 'hourly', value: 45.00, ahtMinutes: 12 }
-                                        }
-                                    },
-                                    sms: {
-                                        _default: { costType: 'perContact', value: 1.50, ahtMinutes: 3 }
-                                    }
-                                },
-                                'Customer Service': { 
-                                    phone: {
-                                        _default: { costType: 'perContact', value: 5.00, ahtMinutes: 12 },
-                                        _specialGroups: {
-                                            'Offshore': { costType: 'perContact', value: 2.50, ahtMinutes: 15 },
-                                            'Tier 2': { costType: 'hourly', value: 25.00, ahtMinutes: 10 }
-                                        }
-                                    },
-                                    sms: {
-                                        _default: { costType: 'perContact', value: 1.50, ahtMinutes: 3 }
-                                    }
-                                }
-                            },
+                            categories,
+                            categoryCosts,
                             useCases: parsed.useCases || [],
-                            defaultAHT: parsed.defaultAHT || 10,
                             dateRange: parsed.dateRange || {
                                 start: new Date().toISOString().slice(0, 7),
                                 end: new Date(new Date().setMonth(new Date().getMonth() + 11)).toISOString().slice(0, 7)
-                            },
-                            metricValues: parsed.metricValues || {
-                                npsImprovement: { value: 50, label: 'Value per NPS Point ($)' },
-                                csatImprovement: { value: 25, label: 'Value per CSAT Point ($)' },
-                                fcrImprovement: { value: 15, label: 'Value per FCR % Improvement ($)' },
-                                conversionRate: { value: 200, label: 'Average Deal Value ($)' },
-                                agentRetention: { value: 5000, label: 'Agent Replacement Cost ($)' },
-                                complianceRate: { value: 1000, label: 'Cost per Compliance Violation ($)' }
                             },
                             financialSettings: parsed.financialSettings || {
                                 implementationCost: 0,
@@ -1068,73 +1030,26 @@
                 const defaultEnd = new Date(currentDate.setMonth(currentDate.getMonth() + 11)).toISOString().slice(0, 7);
                 
                 // Return sensible defaults with example data
-                return {
-                    categories: ['Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'],
-                    channelCosts: ALL_CHANNELS.reduce((acc, ch) => {
-                        acc[ch.id] = {
-                            costType: 'perContact',
-                            value: ch.defaultCost,
-                            ahtMinutes: ch.defaultAHT
-                        };
-                        return acc;
-                    }, {}),
-                    categoryCosts: {
-                        'Pre-Sales': { 
-                            phone: {
-                                _default: { costType: 'perContact', value: 6.00, ahtMinutes: 12 },
-                                _specialGroups: {
-                                    'Senior Sales': { costType: 'perContact', value: 8.00, ahtMinutes: 10 }
-                                }
-                            },
-                            chat: {
-                                _default: { costType: 'perContact', value: 4.50, ahtMinutes: 8 }
-                            },
-                            sms: {
-                                _default: { costType: 'perContact', value: 1.50, ahtMinutes: 3 }
-                            }
-                        },
-                        'Order Support': { 
-                            phone: {
-                                _default: { costType: 'perContact', value: 7.00, ahtMinutes: 12 },
-                                _specialGroups: {
-                                    'Tier 1': { costType: 'perContact', value: 5.50, ahtMinutes: 14 }
-                                }
-                            },
-                            sms: {
-                                _default: { costType: 'perContact', value: 1.50, ahtMinutes: 3 }
-                            }
-                        },
-                        'Technical Support': { 
-                            phone: {
-                                _default: { costType: 'hourly', value: 40.00, ahtMinutes: 15 },
-                                _specialGroups: {
-                                    'Specialists': { costType: 'hourly', value: 50.00, ahtMinutes: 20 },
-                                    'Tier 1': { costType: 'hourly', value: 30.00, ahtMinutes: 12 }
-                                }
-                            },
-                            chat: {
-                                _default: { costType: 'hourly', value: 30.00, ahtMinutes: 8 },
-                                _specialGroups: {
-                                    'Specialists': { costType: 'hourly', value: 45.00, ahtMinutes: 12 }
-                                }
-                            },
-                            sms: {
-                                _default: { costType: 'perContact', value: 1.50, ahtMinutes: 3 }
-                            }
-                        },
-                        'Customer Service': { 
-                            phone: {
-                                _default: { costType: 'perContact', value: 5.00, ahtMinutes: 12 },
-                                _specialGroups: {
-                                    'Offshore': { costType: 'perContact', value: 2.50, ahtMinutes: 15 },
-                                    'Tier 2': { costType: 'hourly', value: 25.00, ahtMinutes: 10 }
-                                }
-                            },
-                            sms: {
-                                _default: { costType: 'perContact', value: 1.50, ahtMinutes: 3 }
-                            }
+                const defaultCategories = ['Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'];
+                const defaultCategoryCosts = {};
+                
+                // Initialize each category with metric values
+                defaultCategories.forEach(category => {
+                    defaultCategoryCosts[category] = {
+                        metricValues: {
+                            npsImprovement: { value: 50, label: 'Value per NPS Point ($)' },
+                            csatImprovement: { value: 25, label: 'Value per CSAT Point ($)' },
+                            fcrImprovement: { value: 15, label: 'Value per FCR % Improvement ($)' },
+                            conversionRate: { value: 200, label: 'Average Deal Value ($)' },
+                            agentRetention: { value: 5000, label: 'Agent Replacement Cost ($)' },
+                            complianceRate: { value: 1000, label: 'Cost per Compliance Violation ($)' }
                         }
-                    },
+                    };
+                });
+                
+                return {
+                    categories: defaultCategories,
+                    categoryCosts: defaultCategoryCosts,
                     useCases: [
                         {
                             id: 'uc1',
@@ -1206,7 +1121,9 @@
             const initialData = loadFromStorage();
             
             // State management
-            const [channelCosts, setChannelCosts] = useState(initialData.channelCosts);
+            // channelCosts is deprecated but kept as empty object for backward compatibility
+            const channelCosts = {};
+            const setChannelCosts = () => {}; // No-op setter
             const [categoryCosts, setCategoryCosts] = useState(initialData.categoryCosts);
             const [useCases, setUseCases] = useState(initialData.useCases);
             const [bulkEditMode, setBulkEditMode] = useState(false);
@@ -1440,10 +1357,14 @@
             const [selectedMetricGuide, setSelectedMetricGuide] = useState(null);
             const [lastSaved, setLastSaved] = useState(new Date());
             const [showSaveIndicator, setShowSaveIndicator] = useState(false);
-            const [defaultAHT, setDefaultAHT] = useState(initialData.defaultAHT || 10);
+            // Global defaults removed - all configuration at category-channel level
+            const defaultAHT = null; // Deprecated - use category-channel config
+            const setDefaultAHT = () => {}; // No-op setter for backward compatibility
+            const agentUtilization = null; // Deprecated - use category-channel config
+            const setAgentUtilization = () => {}; // No-op setter for backward compatibility
+            
             const [editingUseCase, setEditingUseCase] = useState(null);
-            const [showEditModal, setShowEditModal] = useState(false);
-            const [agentUtilization, setAgentUtilization] = useState(initialData.agentUtilization || 75); // Default 75% utilization
+            const [showEditModal, setShowEditModal] = useState(false)
             
             // Category management
             const [categories, setCategories] = useState(initialData.categories || [
@@ -1454,14 +1375,19 @@
             const [editingCategory, setEditingCategory] = useState(null);
             
             // Value configuration for non-cost metrics
-            const [metricValues, setMetricValues] = useState(initialData.metricValues || {
-                npsImprovement: { value: 50, label: 'Value per NPS Point ($)' },
-                csatImprovement: { value: 25, label: 'Value per CSAT Point ($)' },
-                fcrImprovement: { value: 15, label: 'Value per FCR % Improvement ($)' },
-                conversionRate: { value: 200, label: 'Average Deal Value ($)' },
-                agentRetention: { value: 5000, label: 'Agent Replacement Cost ($)' },
-                complianceRate: { value: 1000, label: 'Cost per Compliance Violation ($)' }
-            });
+            // Global metric values removed - all configuration at category level
+            const metricValues = {}; // Deprecated - use category-specific metric values
+            const setMetricValues = () => {}; // No-op setter for backward compatibility
+            
+            // Metric definitions for UI display
+            const METRIC_DEFINITIONS = {
+                npsImprovement: { label: 'Value per NPS Point ($)' },
+                csatImprovement: { label: 'Value per CSAT Point ($)' },
+                fcrImprovement: { label: 'Value per FCR % Improvement ($)' },
+                conversionRate: { label: 'Average Deal Value ($)' },
+                agentRetention: { label: 'Agent Replacement Cost ($)' },
+                complianceRate: { label: 'Cost per Compliance Violation ($)' }
+            };
             
             const fileInputRef = useRef(null);
             const chartRefs = {
@@ -1503,7 +1429,8 @@
                 name: '',
                 costType: 'hourly',
                 value: 30.00,
-                ahtMinutes: defaultAHT
+                ahtMinutes: 10, // Default AHT if not specified
+                utilization: 75 // Default utilization if not specified
             });
 
             // Initialize default category billing structure
@@ -1568,10 +1495,19 @@
             const addCategory = (name) => {
                 if (name && !categories.includes(name)) {
                     setCategories([...categories, name]);
-                    // Initialize empty cost structure for new category
+                    // Initialize cost structure with default metric values for new category
                     setCategoryCosts({
                         ...categoryCosts,
-                        [name]: {}
+                        [name]: {
+                            metricValues: {
+                                npsImprovement: { value: 50, label: 'Value per NPS Point ($)' },
+                                csatImprovement: { value: 25, label: 'Value per CSAT Point ($)' },
+                                fcrImprovement: { value: 15, label: 'Value per FCR % Improvement ($)' },
+                                conversionRate: { value: 200, label: 'Average Deal Value ($)' },
+                                agentRetention: { value: 5000, label: 'Agent Replacement Cost ($)' },
+                                complianceRate: { value: 1000, label: 'Cost per Compliance Violation ($)' }
+                            }
+                        }
                     });
                 }
             };
@@ -1614,23 +1550,30 @@
                 setCategoryCosts(newCategoryCosts);
             };
             
-            // Auto-save functionality
+            // Auto-save functionality with deep comparison
+            const prevDataRef = useRef();
             useEffect(() => {
+                const dataToSave = {
+                    categoryCosts,
+                    categories,
+                    useCases,
+                    dateRange,
+                    financialSettings
+                };
+                
+                // Deep comparison to prevent unnecessary saves
+                const dataString = JSON.stringify(dataToSave);
+                if (prevDataRef.current === dataString) {
+                    return; // No changes, skip save
+                }
+                
                 const saveTimeout = setTimeout(() => {
                     try {
-                        const dataToSave = {
-                            channelCosts,
-                            categoryCosts,
-                            categories,
-                            useCases,
-                            dateRange,
-                            defaultAHT,
-                            agentUtilization,
-                            metricValues,
-                            financialSettings,
+                        prevDataRef.current = dataString;
+                        localStorage.setItem('aiValueCalculatorData', JSON.stringify({
+                            ...dataToSave,
                             savedAt: new Date().toISOString()
-                        };
-                        localStorage.setItem('aiValueCalculatorData', JSON.stringify(dataToSave));
+                        }));
                         setLastSaved(new Date());
                         setShowSaveIndicator(true);
                         setTimeout(() => setShowSaveIndicator(false), 2000);
@@ -1640,83 +1583,64 @@
                 }, 1000);
 
                 return () => clearTimeout(saveTimeout);
-            }, [channelCosts, categoryCosts, categories, useCases, dateRange, defaultAHT, agentUtilization, metricValues, financialSettings]);
+            }, [categoryCosts, categories, useCases, dateRange, financialSettings]);
 
-            // Calculate cost based on category-channel hierarchy and special group
+            // Calculate cost based on category-channel hierarchy ONLY (no channel defaults)
             const getEffectiveCost = (useCase, channel) => {
-                // Priority: Category-Channel-SpecialGroup > Category-Channel (_default) > Category Default > Channel Default
-                if (categoryCosts[useCase.category]) {
-                    const categoryData = categoryCosts[useCase.category];
-
-                    // 1) Category-Channel Special Group (highest)
-                    if (
-                        useCase.specialGroup &&
-                        categoryData[channel] &&
-                        categoryData[channel]._specialGroups &&
-                        categoryData[channel]._specialGroups[useCase.specialGroup]
-                    ) {
-                        const specialGroupCost = categoryData[channel]._specialGroups[useCase.specialGroup];
-                        if (specialGroupCost.costType === 'perContact') {
-                            return specialGroupCost.value;
-                        }
-                        // Hourly → per-contact using AHT and utilization
-                        let aht = specialGroupCost.ahtMinutes;
-                        if (!aht || aht <= 0) {
-                            const channelData = categoryData[channel];
-                            if (channelData && channelData._default && channelData._default.ahtMinutes > 0) {
-                                aht = channelData._default.ahtMinutes;
-                            } else if (categoryData._default && categoryData._default.ahtMinutes > 0) {
-                                aht = categoryData._default.ahtMinutes;
-                            } else {
-                                aht = defaultAHT;
-                            }
-                        }
-                        const utilizationFactor = agentUtilization > 0 ? (100 / agentUtilization) : 1;
-                        return specialGroupCost.value * aht / 60 * utilizationFactor;
+                // Simplified Priority: Category-Channel-SpecialGroup > Category-Channel
+                // NO channel defaults - must configure costs at category level
+                if (!categoryCosts[useCase.category]) {
+                    return 0; // No cost configured for this category
+                }
+                
+                const categoryData = categoryCosts[useCase.category];
+                
+                // 1) Category-Channel Special Group (highest priority)
+                if (
+                    useCase.specialGroup &&
+                    categoryData[channel] &&
+                    categoryData[channel]._specialGroups &&
+                    categoryData[channel]._specialGroups[useCase.specialGroup]
+                ) {
+                    const specialGroupCost = categoryData[channel]._specialGroups[useCase.specialGroup];
+                    if (specialGroupCost.costType === 'perContact') {
+                        return specialGroupCost.value || 0;
                     }
-
-                    // 2) Category-Channel default (object with _default or flat costType)
-                    const channelNode = categoryData[channel];
-                    if (channelNode && typeof channelNode === 'object') {
-                        const costCfg = channelNode._default || (channelNode.costType ? channelNode : null);
-                        if (costCfg && costCfg.costType) {
-                            if (costCfg.costType === 'perContact') {
-                                return costCfg.value || 0;
-                            }
-                            const aht = (typeof costCfg.ahtMinutes === 'number' && costCfg.ahtMinutes > 0)
-                                ? costCfg.ahtMinutes
-                                : getApplicableAHT(useCase);
-                            const utilizationFactor = agentUtilization > 0 ? (100 / agentUtilization) : 1;
-                            return (costCfg.value * aht / 60) * utilizationFactor;
+                    // Hourly → per-contact using AHT and utilization
+                    let aht = specialGroupCost.ahtMinutes;
+                    if (!aht || aht <= 0) {
+                        const channelData = categoryData[channel];
+                        if (channelData && channelData._default && channelData._default.ahtMinutes > 0) {
+                            aht = channelData._default.ahtMinutes;
+                        } else {
+                            aht = 10; // Fallback if no AHT configured
                         }
                     }
-
-                    // 3) Category Default (fallback before channel default)
-                    const catDefault = categoryData._default;
-                    if (catDefault && catDefault.costType) {
-                        if (catDefault.costType === 'perContact') {
-                            return catDefault.value || 0;
+                    const utilization = specialGroupCost.utilization || 75;
+                    const utilizationFactor = utilization > 0 ? (100 / utilization) : 1;
+                    return (specialGroupCost.value * aht / 60) * utilizationFactor;
+                }
+                
+                // 2) Category-Channel default
+                const channelNode = categoryData[channel];
+                if (channelNode && typeof channelNode === 'object') {
+                    // Check if this is a cost configuration object (has costType)
+                    const costCfg = channelNode.costType ? channelNode : channelNode._default;
+                    if (costCfg && costCfg.costType) {
+                        if (costCfg.costType === 'perContact') {
+                            return costCfg.value || 0;
                         }
-                        const aht = (typeof catDefault.ahtMinutes === 'number' && catDefault.ahtMinutes > 0)
-                            ? catDefault.ahtMinutes
-                            : defaultAHT || 10;
-                        const utilizationFactor = agentUtilization > 0 ? (100 / agentUtilization) : 1;
-                        return (catDefault.value * aht / 60) * utilizationFactor;
+                        const aht = (typeof costCfg.ahtMinutes === 'number' && costCfg.ahtMinutes > 0)
+                            ? costCfg.ahtMinutes
+                            : 10; // Fallback if no AHT configured
+                        const utilization = costCfg.utilization || 75;
+                        const utilizationFactor = utilization > 0 ? (100 / utilization) : 1;
+                        return (costCfg.value * aht / 60) * utilizationFactor;
                     }
                 }
-
-                // 4) Channel default (lowest)
-                const channelDefault = channelCosts[channel];
-                if (channelDefault && typeof channelDefault === 'object') {
-                    if (channelDefault.costType === 'perContact') {
-                        return channelDefault.value || 0;
-                    }
-                    const aht = channelDefault.ahtMinutes || defaultAHT || 10;
-                    const utilizationFactor = agentUtilization > 0 ? (100 / agentUtilization) : 1;
-                    return (channelDefault.value * aht / 60) * utilizationFactor;
-                }
-                // Backward compatibility for old format (plain number)
-                return channelDefault || 0;
+                
+                // No configuration found for this category-channel combination
+                return 0;
             };
             
             // Get the cost source description for transparency
@@ -1740,7 +1664,7 @@
                     }
                 }
                 
-                return `Channel Default: ${channel}`;
+                return `Not Configured: ${useCase.category} - ${channel}`;
             };
 
             // Helper to get channel configuration (using top-level ALL_CHANNELS)
@@ -1793,7 +1717,7 @@
                 }
                 
                 // 4. Global default
-                return defaultAHT > 0 ? defaultAHT : 10;
+                return 10; // Fallback if no AHT configured
             };
             
             // Helper function to get available special groups for a category-channel combination
@@ -2056,8 +1980,8 @@
 
             const getChannelAHT = (channel) => {
                 const cost = channelCosts[channel];
-                if (!cost || typeof cost !== 'object') return defaultAHT;
-                return cost.ahtMinutes || defaultAHT;
+                if (!cost || typeof cost !== 'object') return 10;
+                return cost.ahtMinutes || 10;
             };
             
             // Curve interpolation functions
@@ -2191,8 +2115,8 @@
                     return categoryCosts[useCase.category].metricValues[metricKey].value;
                 }
                 
-                // Finally use global default
-                return metricValues[metricKey]?.value || 0;
+                // No global default - must be configured at category level
+                return 0;
             };
             
             // Migration function to convert old category structure to new category-channel structure
@@ -3883,12 +3807,12 @@
                 }
             }, [activeTab, financialMetrics, getFilteredMonths, financialSettings, categories]);
             
-            // Ensure all channels exist in channelCosts (for users with existing data)
-            useEffect(() => {
-                if (ensureAllChannelsExist()) {
-                    console.log('Added missing channels to channelCosts configuration');
-                }
-            }, [channelCosts]); // Only run when channelCosts changes
+            // No longer needed - removed channel defaults
+            // useEffect(() => {
+            //     if (ensureAllChannelsExist()) {
+            //         console.log('Added missing channels to channelCosts configuration');
+            //     }
+            // }, []);
 
             // CRUD Operations
             const addUseCase = () => {
@@ -4937,8 +4861,7 @@
                 csv += `Analysis Period: ${dateRange.start} to ${dateRange.end}\n`;
                 csv += `Total Months: ${months.length}\n`;
                 csv += `Total Use Cases: ${useCases.length}\n`;
-                csv += `Default AHT: ${defaultAHT} minutes\n`;
-                csv += `Agent Utilization: ${agentUtilization}%\n`;
+                // Global defaults removed - configuration at category-channel level
                 
                 // Add filter information if on analytics tab
                 if (activeTab === 'analytics') {
@@ -5110,8 +5033,7 @@
                 // Agent Configuration
                 csv += '\n--- AGENT CONFIGURATION ---\n';
                 csv += 'Parameter,Value,Unit\n';
-                csv += `Default AHT,${defaultAHT},minutes\n`;
-                csv += `Agent Utilization,${agentUtilization},%\n`;
+                // Global defaults removed - configuration at category-channel level
                 
                 // Cost Hierarchy
                 csv += '\n--- COST HIERARCHY ---\n';
@@ -5119,7 +5041,7 @@
                 
                 // Channel costs (Priority 3)
                 Object.entries(channelCosts).forEach(([channel, cost]) => {
-                    csv += `Channel Default,Channel,${channel},Per Contact,${cost},${defaultAHT},Priority 3 (Lowest)\n`;
+                    csv += `Channel Default,Channel,${channel},Per Contact,${cost},10,Priority 3 (Lowest)\n`;
                 });
                 
                 // Category costs (Priority 3)
@@ -5127,7 +5049,7 @@
                     // Category default
                     const defaultCost = categoryData._default || categoryData;
                     if (defaultCost && defaultCost.costType) {
-                        const aht = typeof defaultCost.ahtMinutes === 'number' ? defaultCost.ahtMinutes : defaultAHT;
+                        const aht = typeof defaultCost.ahtMinutes === 'number' ? defaultCost.ahtMinutes : 10;
                         csv += `Category Default,Category,${category},${defaultCost.costType === 'hourly' ? 'Hourly' : 'Per Contact'},${defaultCost.value},${aht},Priority 3\n`;
                     }
                     
@@ -5135,13 +5057,13 @@
                     Object.entries(categoryData).forEach(([channel, channelData]) => {
                         if (channel !== '_default' && channelData && channelData._default) {
                             const channelCost = channelData._default;
-                            const aht = typeof channelCost.ahtMinutes === 'number' ? channelCost.ahtMinutes : defaultAHT;
+                            const aht = typeof channelCost.ahtMinutes === 'number' ? channelCost.ahtMinutes : 10;
                             csv += `Category-Channel,Category-Channel,"${category} (${channel})",${channelCost.costType === 'hourly' ? 'Hourly' : 'Per Contact'},${channelCost.value},${aht},Priority 2\n`;
                             
                             // Special groups within category-channel (Priority 1)
                             if (channelData._specialGroups) {
                                 Object.entries(channelData._specialGroups).forEach(([group, groupData]) => {
-                                    const aht = typeof groupData.ahtMinutes === 'number' ? groupData.ahtMinutes : defaultAHT;
+                                    const aht = typeof groupData.ahtMinutes === 'number' ? groupData.ahtMinutes : 10;
                                     csv += `Special Group,Category-Channel-SpecialGroup,"${category} (${channel}) - ${group}",${groupData.costType === 'hourly' ? 'Hourly' : 'Per Contact'},${groupData.value},${aht},Priority 1 (Highest)\n`;
                                 });
                             }
@@ -5456,8 +5378,7 @@
                 csv += `Export Date: ${new Date().toISOString()}\n`;
                 csv += `Analysis Period: ${analyticsDateRange.start} to ${analyticsDateRange.end}\n`;
                 csv += `Months: ${getFilteredMonths().length}\n`;
-                csv += `Default AHT: ${defaultAHT} minutes\n`;
-                csv += `Agent Utilization: ${agentUtilization}%\n`;
+                // Global defaults removed - configuration at category-channel level
                 
                 const filteredUseCases = getFilteredUseCases();
                 const filteredMonths = getFilteredMonths();
@@ -6061,7 +5982,7 @@
                         Object.entries(categoryData).forEach(([channel, channelData]) => {
                             if (channel !== '_default' && channelData && channelData._specialGroups) {
                                 Object.entries(channelData._specialGroups).forEach(([group, groupData]) => {
-                                    const aht = groupData.ahtMinutes || defaultAHT;
+                                    const aht = groupData.ahtMinutes || 10;
                                     const convertedCost = groupData.costType === 'hourly' ? (groupData.value * aht / 60).toFixed(2) : groupData.value;
                                     csv += `${group},${category},${channel},${groupData.costType},$${groupData.value},${aht},$${convertedCost}\n`;
                                 });
@@ -6283,7 +6204,7 @@
                                 } else {
                                     switch (metricConfig.type) {
                                         case 'time_cost':
-                                            const aht = getApplicableAHT(uc) || defaultAHT;
+                                            const aht = getApplicableAHT(uc) || 10;
                                             const costPerMin = cost / aht;
                                             savingsFormula = `=G${row}*MIN(I${row},${aht})*${costPerMin.toFixed(4)}`;
                                             break;
@@ -6432,7 +6353,7 @@
                                 // Generate formula based on metric type
                                 switch (metricConfig.type) {
                                     case 'time_cost': {
-                                        const aht = getApplicableAHT(uc) || defaultAHT;
+                                        const aht = getApplicableAHT(uc) || 10;
                                         const costPerMinute = effectiveCost / aht;
                                         savingsFormula = metricConfig.excelFormula(currentRow, { 
                                             aht: aht.toFixed(2), 
@@ -6509,17 +6430,7 @@
                 
                 let configRow = 7; // Starting row for config data
                 
-                // Channel defaults
-                Object.entries(channelCosts).forEach(([channel, cost]) => {
-                    // Handle both simple numbers and object format
-                    const costValue = typeof cost === 'object' ? cost.value : cost;
-                    const costType = typeof cost === 'object' && cost.costType ? cost.costType : 'perContact';
-                    const aht = typeof cost === 'object' && cost.ahtMinutes ? cost.ahtMinutes : defaultAHT;
-                    csv += `Channel Default,,${channel},,${costType === 'hourly' ? 'Hourly' : 'Per Contact'},${costValue},${aht},4 (Lowest),F${configRow}\n`;
-                    configRow++;
-                });
-                
-                // Category costs with cell references
+                // Category costs with cell references (no channel defaults anymore)
                 Object.entries(categoryCosts).forEach(([category, categoryData]) => {
                     const defaultCost = categoryData._default || categoryData;
                     if (defaultCost && defaultCost.costType) {
@@ -6530,12 +6441,12 @@
                     Object.entries(categoryData).forEach(([channel, channelData]) => {
                         if (channel !== '_default' && channelData) {
                             if (channelData._default) {
-                                csv += `Category-Channel,${category},${channel},,${channelData._default.costType},${channelData._default.value},${channelData._default.ahtMinutes || defaultAHT},2,B${configRow}\n`;
+                                csv += `Category-Channel,${category},${channel},,${channelData._default.costType},${channelData._default.value},${channelData._default.ahtMinutes || 10},2,B${configRow}\n`;
                                 configRow++;
                             }
                             if (channelData._specialGroups) {
                                 Object.entries(channelData._specialGroups).forEach(([group, groupData]) => {
-                                    csv += `Special Group,${category},${channel},${group},${groupData.costType},${groupData.value},${groupData.ahtMinutes || defaultAHT},1 (Highest),B${configRow}\n`;
+                                    csv += `Special Group,${category},${channel},${group},${groupData.costType},${groupData.value},${groupData.ahtMinutes || 10},1 (Highest),B${configRow}\n`;
                                     configRow++;
                                 });
                             }
@@ -6574,8 +6485,8 @@
                             } else {
                                 switch (metricConfig.type) {
                                     case 'time_cost': {
-                                        const costPerMin = effectiveCost / (getApplicableAHT(uc) || defaultAHT);
-                                        const cappedMinutes = Math.min(netImprovement, getApplicableAHT(uc) || defaultAHT);
+                                        const costPerMin = effectiveCost / (getApplicableAHT(uc) || 10);
+                                        const cappedMinutes = Math.min(netImprovement, getApplicableAHT(uc) || 10);
                                         formula = `${volume} × ${cappedMinutes} min × $${costPerMin.toFixed(3)}/min`;
                                         break;
                                     }
@@ -6653,8 +6564,7 @@
                     categoryCosts,
                     useCases,
                     dateRange,
-                    defaultAHT,
-                    agentUtilization,
+                    // defaultAHT and agentUtilization removed - now in category config
                     metricValues,
                     dataTemplates,
                     exportDate: new Date().toISOString(),
@@ -6713,12 +6623,7 @@
                                 const monthCount = generateMonthsFromRange(importedData.dateRange.start, importedData.dateRange.end).length;
                                 importSummary.push(`${monthCount} months of analysis period`);
                             }
-                            if (typeof importedData.defaultAHT === 'number') {
-                                setDefaultAHT(importedData.defaultAHT);
-                            }
-                            if (typeof importedData.agentUtilization === 'number') {
-                                setAgentUtilization(importedData.agentUtilization);
-                            }
+                            // Global defaults removed - configuration at category-channel level
                             if (importedData.metricValues) {
                                 setMetricValues(importedData.metricValues);
                                 importSummary.push(`${Object.keys(importedData.metricValues).length} quality metric values`);
@@ -6748,8 +6653,8 @@
             const exportCostConfigurationCSV = () => {
                 let csv = '=== AI ROI CALCULATOR COST & VALUE CONFIGURATION EXPORT ===\n';
                 csv += `Export Date: ${new Date().toISOString()}\n`;
-                csv += `Default AHT: ${defaultAHT} minutes\n`;
-                csv += `Agent Utilization: ${agentUtilization}%\n\n`;
+                // Global defaults removed - configuration at category-channel level
+                csv += '\n';
                 
                 // Quality Metric Values
                 csv += '=== QUALITY METRIC VALUES ===\n';
@@ -6778,7 +6683,7 @@
                     
                     if (normalized.costType === 'hourly') {
                         const aht = normalized.ahtMinutes || defaultAHT;
-                        const utilization = agentUtilization || 100;
+                        const utilization = normalized.utilization || 75;
                         effectiveCost = (normalized.value * aht / 60) * (100 / utilization);
                         formula = `(Hourly_Rate × AHT_Minutes / 60) × (100 / Agent_Utilization%)`;
                     }
@@ -6794,7 +6699,7 @@
                     // Category defaults
                     const defaultCost = categoryData._default || categoryData;
                     if (defaultCost && defaultCost.costType) {
-                        const aht = typeof defaultCost.ahtMinutes === 'number' ? defaultCost.ahtMinutes : defaultAHT;
+                        const aht = typeof defaultCost.ahtMinutes === 'number' ? defaultCost.ahtMinutes : 10;
                         csv += `${category},All Channels,,${defaultCost.costType === 'hourly' ? 'Hourly' : 'Per Contact'},${defaultCost.value},${aht},3 (Medium),Category default for all channels\n`;
                     }
                     
@@ -6802,13 +6707,13 @@
                     Object.entries(categoryData).forEach(([channel, channelData]) => {
                         if (channel !== '_default' && channelData && channelData._default) {
                             const channelCost = channelData._default;
-                            const aht = typeof channelCost.ahtMinutes === 'number' ? channelCost.ahtMinutes : defaultAHT;
+                            const aht = typeof channelCost.ahtMinutes === 'number' ? channelCost.ahtMinutes : 10;
                             csv += `${category},${channel},,${channelCost.costType === 'hourly' ? 'Hourly' : 'Per Contact'},${channelCost.value},${aht},2 (High),Category-channel specific\n`;
                             
                             // Special groups
                             if (channelData._specialGroups) {
                                 Object.entries(channelData._specialGroups).forEach(([group, groupData]) => {
-                                    const aht = typeof groupData.ahtMinutes === 'number' ? groupData.ahtMinutes : defaultAHT;
+                                    const aht = typeof groupData.ahtMinutes === 'number' ? groupData.ahtMinutes : 10;
                                     csv += `${category},${channel},${group},${groupData.costType === 'hourly' ? 'Hourly' : 'Per Contact'},${groupData.value},${aht},1 (Highest),Special group override\n`;
                                 });
                             }
@@ -7155,179 +7060,8 @@
                         {/* Advanced Settings Panel */}
                         {showSettings && (
                             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                                <h2 className="text-xl font-semibold mb-4">Advanced Cost Settings</h2>
-                                {/* Global Default AHT */}
-                                <div className="settings-section">
-                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                        <Icons.Clock /> Call Center Default AHT (minutes)
-                                    </h3>
-                                    <div className="settings-grid">
-                                        <div className="settings-item">
-                                            <label className="settings-label">Default AHT (min)</label>
-                                            <input
-                                                type="number"
-                                                value={defaultAHT}
-                                                onChange={(e) => setDefaultAHT(Math.max(0, parseFloat(e.target.value) || 0))}
-                                                className="settings-input w-28"
-                                                step="0.1"
-                                            />
-                                        </div>
-                                    </div>
-                                    <p className="text-sm text-gray-500 mt-2">Used when a Category or Special Group does not specify its own AHT.</p>
-                                </div>
-                                
-                                {/* Agent Utilization */}
-                                <div className="settings-section">
-                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                        <Icons.Chart /> Agent Utilization
-                                    </h3>
-                                    <div className="settings-grid">
-                                        <div className="settings-item">
-                                            <label className="settings-label">Utilization Rate (%)</label>
-                                            <input
-                                                type="number"
-                                                value={agentUtilization}
-                                                onChange={(e) => setAgentUtilization(Math.max(0, Math.min(100, parseFloat(e.target.value) || 75)))}
-                                                className="settings-input w-28"
-                                                step="1"
-                                                min="0"
-                                                max="100"
-                                            />
-                                            <span className="text-sm text-gray-600 ml-2">{agentUtilization}%</span>
-                                        </div>
-                                    </div>
-                                    <p className="text-sm text-gray-500 mt-2">
-                                        Accounts for breaks, training, idle time, etc. Typical range: 60-85%. 
-                                        Lower utilization = higher true cost per contact.
-                                        {agentUtilization < 100 && (
-                                            <span className="block mt-1 text-blue-600">
-                                                ℹ️ Hourly costs will be adjusted by {(100/agentUtilization).toFixed(2)}x to account for non-productive time
-                                            </span>
-                                        )}
-                                    </p>
-                                </div>
-                                
-                                {/* Value Configuration for Non-Cost Metrics */}
-                                <div className="settings-section">
-                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                        <Icons.Chart /> Value Configuration for Quality Metrics
-                                    </h3>
-                                    <p className="text-sm text-gray-500 mb-4">Configure dollar values for quality improvement metrics (NPS, CSAT, etc.)</p>
-                                    <div className="settings-grid">
-                                        {Object.entries(metricValues).map(([key, config]) => (
-                                            <div key={key} className="settings-item">
-                                                <label className="settings-label">{config.label}</label>
-                                                <input
-                                                    type="number"
-                                                    value={config.value}
-                                                    onChange={(e) => setMetricValues({
-                                                        ...metricValues,
-                                                        [key]: { ...config, value: Math.max(0, parseFloat(e.target.value) || 0) }
-                                                    })}
-                                                    className="settings-input w-28"
-                                                    step="0.01"
-                                                    min="0"
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <p className="text-sm text-gray-500 mt-2">
-                                        These values are used to calculate ROI for quality improvements. For example, if NPS improves by 2 points for 1000 customers, 
-                                        the calculated value would be: 1000 × 2 × ${metricValues.npsImprovement?.value || 50} = ${((metricValues.npsImprovement?.value || 50) * 2 * 1000).toLocaleString()}
-                                    </p>
-                                </div>
-                                
-                                {/* Channel Costs */}
-                                <div className="settings-section">
-                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                        <Icons.Dollar /> Channel Default Costs
-                                    </h3>
-                                    <div className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded">
-                                        <strong>💡 Channel Defaults:</strong> Set base costs for each channel. These are used when no category-specific costs are defined.
-                                        Can be set as per-contact or hourly rates. Hourly rates are converted using AHT and agent utilization.
-                                    </div>
-                                    <div className="space-y-3">
-                                        {ALL_CHANNELS.map((channelConfig) => {
-                                            const channelCost = channelCosts[channelConfig.id] || {
-                                                costType: 'perContact',
-                                                value: channelConfig.defaultCost,
-                                                ahtMinutes: channelConfig.defaultAHT
-                                            };
-                                            // Handle old format (plain number)
-                                            const normalizedCost = typeof channelCost === 'object' ? channelCost : {
-                                                costType: 'perContact',
-                                                value: channelCost,
-                                                ahtMinutes: channelConfig.defaultAHT
-                                            };
-                                            
-                                            return (
-                                                <div key={channelConfig.id} className="flex items-center gap-3 p-3 bg-white rounded border">
-                                                    <span className="w-20 font-medium text-sm">{channelConfig.label}:</span>
-                                                    
-                                                    <div className="cost-type-toggle">
-                                                        <button
-                                                            onClick={() => setChannelCosts({
-                                                                ...channelCosts,
-                                                                [channelConfig.id]: { ...normalizedCost, costType: 'perContact' }
-                                                            })}
-                                                            className={`cost-type-btn ${normalizedCost.costType === 'perContact' ? 'cost-type-btn-active' : 'cost-type-btn-inactive'}`}
-                                                        >
-                                                            Per Contact
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setChannelCosts({
-                                                                ...channelCosts,
-                                                                [channelConfig.id]: { ...normalizedCost, costType: 'hourly' }
-                                                            })}
-                                                            className={`cost-type-btn ${normalizedCost.costType === 'hourly' ? 'cost-type-btn-active' : 'cost-type-btn-inactive'}`}
-                                                        >
-                                                            Hourly
-                                                        </button>
-                                                    </div>
-                                                    
-                                                    <div className="flex items-center gap-2">
-                                                        <label className="text-xs font-medium text-blue-600">💰 Cost:</label>
-                                                        <input
-                                                            type="number"
-                                                            value={normalizedCost.value || 0}
-                                                            onChange={(e) => setChannelCosts({
-                                                                ...channelCosts,
-                                                                [channelConfig.id]: { ...normalizedCost, value: parseFloat(e.target.value) || 0 }
-                                                            })}
-                                                            className="settings-input w-24"
-                                                            step="0.01"
-                                                            placeholder="0.00"
-                                                        />
-                                                    </div>
-                                                    
-                                                    <div className="flex items-center gap-2">
-                                                        <label className="text-xs font-medium text-green-600">⏱️ AHT (min):</label>
-                                                        <input
-                                                            type="number"
-                                                            value={normalizedCost.ahtMinutes || channelConfig.defaultAHT}
-                                                            onChange={(e) => setChannelCosts({
-                                                                ...channelCosts,
-                                                                [channelConfig.id]: { ...normalizedCost, ahtMinutes: Math.max(0, parseFloat(e.target.value) || 0) }
-                                                            })}
-                                                            className="settings-input w-20"
-                                                            step="0.1"
-                                                            placeholder="AHT"
-                                                        />
-                                                    </div>
-                                                    
-                                                    <span className="text-sm text-gray-500">
-                                                        ${normalizedCost.value || 0} {normalizedCost.costType === 'hourly' ? '/hr' : '/contact'}
-                                                        {normalizedCost.costType === 'hourly' && (
-                                                            <span className="text-xs ml-2">
-                                                                (≈ ${((normalizedCost.value || 0) * (normalizedCost.ahtMinutes || channelConfig.defaultAHT) / 60 * (100 / (agentUtilization || 100))).toFixed(2)}/contact)
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
+                                <h2 className="text-xl font-semibold mb-4">Advanced Settings</h2>
+                                {/* Global defaults removed - all configuration at category level including quality metrics */}
                                 
                                 {/* Category Manager */}
                                 <div className="settings-section">
@@ -7429,8 +7163,8 @@
                                         <Icons.Chart /> Category-Specific Metric Values
                                     </h3>
                                     <div className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded">
-                                        <strong>💡 Override Metric Values by Category:</strong> Set different NPS values, agent retention costs, etc. for each category.
-                                        Leave blank to use global defaults.
+                                        <strong>💡 Category Metric Values:</strong> Set NPS values, agent retention costs, etc. for each category.
+                                        These values are required for quality metric calculations to work.
                                     </div>
                                     
                                     {categories.length === 0 ? (
@@ -7441,24 +7175,24 @@
                                                 <div key={category} className="border rounded-lg p-4">
                                                     <h4 className="font-medium mb-3 text-blue-700">{category}</h4>
                                                     <div className="grid grid-cols-2 gap-4">
-                                                        {Object.entries(metricValues).map(([key, config]) => {
+                                                        {Object.entries(METRIC_DEFINITIONS).map(([key, def]) => {
                                                             const categoryMetricValue = categoryCosts[category]?.metricValues?.[key];
                                                             return (
                                                                 <div key={key} className="flex items-center gap-2">
-                                                                    <label className="text-sm flex-1">{config.label}:</label>
+                                                                    <label className="text-sm flex-1">{def.label}:</label>
                                                                     <input
                                                                         type="number"
-                                                                        placeholder={`Default: $${config.value}`}
+                                                                        placeholder="Required"
                                                                         value={categoryMetricValue?.value || ''}
                                                                         onChange={(e) => {
-                                                                            const newValue = e.target.value ? parseFloat(e.target.value) : null;
+                                                                            const newValue = e.target.value ? parseFloat(e.target.value) : 0;
                                                                             setCategoryCosts(prev => ({
                                                                                 ...prev,
                                                                                 [category]: {
                                                                                     ...prev[category],
                                                                                     metricValues: {
                                                                                         ...(prev[category]?.metricValues || {}),
-                                                                                        [key]: newValue ? { ...config, value: newValue } : undefined
+                                                                                        [key]: { ...def, value: newValue }
                                                                                     }
                                                                                 }
                                                                             }));
@@ -7494,9 +7228,19 @@
                                     </div>
                                     
                                     <div className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded">
-                                        <strong>💡 New Feature:</strong> Set different costs for each category-channel combination. 
-                                        All channels (Phone, Chat, Email, SMS, Social, Bot) are available for cost configuration. 
-                                        Default costs apply when no channel-specific cost is set.
+                                        <strong>💡 Cost Configuration:</strong> Set different costs for each category-channel combination.
+                                        <div className="mt-2">
+                                            <strong>For Hourly Costs:</strong>
+                                            <ul className="ml-4 mt-1">
+                                                <li>• <strong>AHT (Average Handle Time):</strong> Minutes per contact</li>
+                                                <li>• <strong>Utilization %:</strong> Agent productive time (typically 60-85%)</li>
+                                                <li>• <strong>Formula:</strong> (Hourly Rate × AHT ÷ 60) × (100 ÷ Utilization%)</li>
+                                                <li>• <strong>Example:</strong> $30/hr × 10min ÷ 60 × (100÷75%) = $6.67/contact</li>
+                                            </ul>
+                                        </div>
+                                        <div className="mt-2">
+                                            <strong>For Per-Contact Costs:</strong> Fixed cost per interaction (utilization not applicable)
+                                        </div>
                                     </div>
                                     
                                     {Object.keys(categoryCosts).length === 0 ? (
@@ -7516,14 +7260,13 @@
                                                         <div className="space-y-2">
                                                             <h5 className="font-medium text-sm text-gray-700">Channel Costs for {category}:</h5>
                                                             {channels.map(channel => {
-                                                                // Get channel cost or use channel defaults
+                                                                // Get channel cost from category configuration
                                                                 const channelSpecificData = categoryData[channel];
-                                                                const channelDefaultData = channelCosts[channel] || { costType: 'perContact', value: 0, ahtMinutes: 10 };
                                                                 
-                                                                // Use category-channel cost if exists, otherwise use channel defaults
+                                                                // Use category-channel cost if exists, otherwise default empty
                                                                 const channelCost = (channelSpecificData && typeof channelSpecificData === 'object') 
                                                                     ? channelSpecificData 
-                                                                    : channelDefaultData;
+                                                                    : { costType: 'perContact', value: 0, ahtMinutes: 10 };
                                                                     
                                                                 const hasUseCases = useCases.some(uc => uc.channel === channel && uc.category === category);
                                                                 const isOverride = channelSpecificData && typeof channelSpecificData === 'object';
@@ -7574,7 +7317,7 @@
                                                                                     <span className="text-xs text-green-600 font-medium">⏱️</span>
                                                                                     <input
                                                                                         type="number"
-                                                                                        value={typeof channelCost.ahtMinutes === 'number' ? channelCost.ahtMinutes : (channelDefaultData.ahtMinutes || defaultAHT)}
+                                                                                        value={typeof channelCost.ahtMinutes === 'number' ? channelCost.ahtMinutes : 10}
                                                                                         onChange={(e) => setCategoryCosts({
                                                                                             ...categoryCosts,
                                                                                             [category]: { ...categoryData, [channel]: { ...channelCost, ahtMinutes: Math.max(0, parseFloat(e.target.value) || 0) } }
@@ -7584,9 +7327,34 @@
                                                                                         placeholder="AHT min"
                                                                                     />
                                                                                 </div>
-                                                                                <span className="text-xs text-gray-500">
-                                                                                    ${channelCost.value} {channelCost.costType === 'hourly' ? '/hr' : '/contact'}
-                                                                                </span>
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <span className="text-xs text-blue-600 font-medium" title="Agent Utilization %">Util:</span>
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        value={typeof channelCost.utilization === 'number' ? channelCost.utilization : 75}
+                                                                                        onChange={(e) => setCategoryCosts({
+                                                                                            ...categoryCosts,
+                                                                                            [category]: { ...categoryData, [channel]: { ...channelCost, utilization: Math.max(0, Math.min(100, parseFloat(e.target.value) || 75)) } }
+                                                                                        })}
+                                                                                        className="settings-input flex-1 min-w-0 text-sm"
+                                                                                        step="1"
+                                                                                        placeholder="75"
+                                                                                        title="Agent Utilization % (only affects hourly costs)"
+                                                                                        min="0"
+                                                                                        max="100"
+                                                                                    />
+                                                                                    <span className="text-xs text-gray-500">%</span>
+                                                                                </div>
+                                                                                <div className="text-xs text-gray-600">
+                                                                                    {channelCost.costType === 'hourly' ? (
+                                                                                        <span title="Effective cost calculation for hourly rate">
+                                                                                            ${channelCost.value}/hr × {channelCost.ahtMinutes || 10}min ÷ 60 × {(100/(channelCost.utilization || 75)).toFixed(2)} = 
+                                                                                            <strong> ${((channelCost.value * (channelCost.ahtMinutes || 10) / 60) * (100/(channelCost.utilization || 75))).toFixed(2)}/contact</strong>
+                                                                                        </span>
+                                                                                    ) : (
+                                                                                        <span>${channelCost.value}/contact (utilization N/A)</span>
+                                                                                    )}
+                                                                                </div>
                                                                                 <button
                                                                                     onClick={() => removeChannelCostFromCategory(category, channel)}
                                                                                     className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200"
@@ -7688,7 +7456,7 @@
                                                                                                     <span className="text-xs text-green-600 font-medium" title="AHT (minutes)">⏱️</span>
                                                                                                     <input
                                                                                                         type="number"
-                                                                                                        value={groupData.ahtMinutes || defaultAHT}
+                                                                                                        value={groupData.ahtMinutes || 10}
                                                                                                         onChange={(e) => setCategoryCosts({
                                                                                                             ...categoryCosts,
                                                                                                             [category]: {
@@ -7708,6 +7476,43 @@
                                                                                                         title="Average Handle Time (minutes)"
                                                                                                     />
                                                                                                     <span className="text-xs text-gray-500">min</span>
+                                                                                                </div>
+                                                                                                <div className="flex items-center gap-1">
+                                                                                                    <span className="text-xs text-blue-600 font-medium" title="Agent Utilization %">Util:</span>
+                                                                                                    <input
+                                                                                                        type="number"
+                                                                                                        value={groupData.utilization || 75}
+                                                                                                        onChange={(e) => setCategoryCosts({
+                                                                                                            ...categoryCosts,
+                                                                                                            [category]: {
+                                                                                                                ...categoryData,
+                                                                                                                [channel]: {
+                                                                                                                    ...channelCost,
+                                                                                                                    _specialGroups: {
+                                                                                                                        ...channelCost._specialGroups,
+                                                                                                                        [groupName]: { ...groupData, utilization: Math.max(0, Math.min(100, parseFloat(e.target.value) || 75)) }
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                        })}
+                                                                                                        className="settings-input w-14 text-xs"
+                                                                                                        step="1"
+                                                                                                        placeholder="75"
+                                                                                                        title="Agent Utilization % (only affects hourly costs)"
+                                                                                                        min="0"
+                                                                                                        max="100"
+                                                                                                    />
+                                                                                                    <span className="text-xs text-gray-500">%</span>
+                                                                                                </div>
+                                                                                                <div className="text-xs text-gray-600 col-span-2">
+                                                                                                    {groupData.costType === 'hourly' ? (
+                                                                                                        <span title="Effective cost calculation for hourly rate">
+                                                                                                            ${groupData.value}/hr × {groupData.ahtMinutes || 10}min ÷ 60 × {(100/(groupData.utilization || 75)).toFixed(2)} = 
+                                                                                                            <strong> ${((groupData.value * (groupData.ahtMinutes || 10) / 60) * (100/(groupData.utilization || 75))).toFixed(2)}/contact</strong>
+                                                                                                        </span>
+                                                                                                    ) : (
+                                                                                                        <span>${groupData.value}/contact (utilization N/A)</span>
+                                                                                                    )}
                                                                                                 </div>
                                                                                             </div>
                                                                                         </div>
@@ -7735,7 +7540,8 @@
                                                                                                                     [groupName]: {
                                                                                                                         costType: channelCost.costType || 'perContact',
                                                                                                                         value: channelCost.value || 0,
-                                                                                                                        ahtMinutes: channelCost.ahtMinutes || defaultAHT
+                                                                                                                        ahtMinutes: channelCost.ahtMinutes || 10,
+                                                                                                                        utilization: channelCost.utilization || 75
                                                                                                                     }
                                                                                                                 }
                                                                                                             }
@@ -8787,9 +8593,9 @@
                                                     const perBenefitTotals = Array.from(totalsByBenefit.entries()).sort((a, b) => b[1] - a[1]);
 
                                                     return (
-                                                        <tr key={useCase.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} ${selectedUseCases.has(useCase.id) ? 'ring-2 ring-blue-300 bg-blue-50' : ''} transition-colors`}>
+                                                        <tr key={useCase.id} className={`${selectedUseCases.has(useCase.id) ? 'row-selected ring-2 ring-blue-300' : (index % 2 === 0 ? 'row-even' : 'row-odd')} transition-colors`} style={{borderBottom: '2px solid rgba(147, 197, 253, 0.5)'}}>
                                                             {bulkEditMode && (
-                                                                <td className={`px-2 py-1.5 text-center sticky left-0 z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} ${selectedUseCases.has(useCase.id) ? 'bg-blue-50' : ''}`}>
+                                                                <td className="px-2 py-1.5 text-center sticky left-0 z-10">
                                                                     <input
                                                                         type="checkbox"
                                                                         checked={selectedUseCases.has(useCase.id)}
@@ -8806,7 +8612,7 @@
                                                                     />
                                                                 </td>
                                                             )}
-                                                            <td className={`px-2 py-1.5 text-xs sticky ${bulkEditMode ? 'left-12' : 'left-0'} z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} ${selectedUseCases.has(useCase.id) ? 'bg-blue-50' : ''} min-w-[120px]`}>
+                                                            <td className={`px-2 py-1.5 text-xs sticky ${bulkEditMode ? 'left-12' : 'left-0'} z-10 min-w-[120px]`}>
                                                                 <select
                                                                     value={useCase.category}
                                                                     onChange={(e) => {
@@ -8827,7 +8633,7 @@
                                                                     ))}
                                                                 </select>
                                                             </td>
-                                                            <td className={`px-2 py-1.5 text-xs sticky ${bulkEditMode ? 'left-36' : 'left-28'} z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} ${selectedUseCases.has(useCase.id) ? 'bg-blue-50' : ''} min-w-[200px]`}>
+                                                            <td className={`px-2 py-1.5 text-xs sticky ${bulkEditMode ? 'left-36' : 'left-28'} z-10 min-w-[200px]`}>
                                                                 <div title={useCase.name} className="font-medium truncate max-w-[180px]">{useCase.name}</div>
                                                                 {normalizedUseCase.benefits.length > 0 && (
                                                                     <div className="mt-1 space-y-0.5">
@@ -8870,7 +8676,7 @@
                                                                     </div>
                                                                 )}
                                                             </td>
-                                                            <td className={`px-2 py-1.5 text-xs sticky ${bulkEditMode ? 'left-80' : 'left-72'} z-10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} ${selectedUseCases.has(useCase.id) ? 'bg-blue-50' : ''} min-w-[140px]`}>
+                                                            <td className={`px-2 py-1.5 text-xs sticky ${bulkEditMode ? 'left-80' : 'left-72'} z-10 min-w-[140px]`}>
                                                                 <select
                                                                     value={useCase.channel}
                                                                     onChange={(e) => {
@@ -8941,7 +8747,7 @@
                                                                                     const volumeLabel = getVolumeLabel(benefit.metric);
                                                                                     
                                                                                     return (
-                                                                                        <div key={`${benefit.metric}-${benefitIndex}`} className="p-2 bg-gray-50 rounded border border-gray-200 mb-3">
+                                                                                        <div key={`${benefit.metric}-${benefitIndex}`} className="p-2 bg-white/70 rounded border border-gray-200 mb-3">
                                                                                             <div className="text-[10px] font-semibold text-blue-600 mb-1 flex justify-between items-start">
                                                                                                 <span className="truncate pr-1">{benefit.metric}</span>
                                                                                                 {(() => {
