@@ -8956,18 +8956,18 @@
                                         </div>
                                         
                                         {/* Action buttons on the right */}
-                                        <div className="flex gap-2">
+                                        <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'flex gap-2'}`}>
                                             <button
                                                 onClick={() => setShowTemplates(!showTemplates)}
-                                                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center gap-2 text-sm"
+                                                className={`bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center ${isMobile ? 'justify-center' : ''} gap-2 text-sm`}
                                             >
-                                                <Icons.FileText /> {showTemplates ? 'Hide' : 'Show'} Templates
+                                                <Icons.FileText /> <span className={isMobile ? 'text-xs' : ''}>{showTemplates ? 'Hide' : 'Show'} Templates</span>
                                             </button>
                                             <button
                                                 onClick={() => setShowAddUseCase(!showAddUseCase)}
-                                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2 text-sm"
+                                                className={`bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center ${isMobile ? 'justify-center' : ''} gap-2 text-sm`}
                                             >
-                                                <span className="text-lg">+</span> Add Use Case
+                                                <span className="text-lg">+</span> <span className={isMobile ? 'text-xs' : ''}>Add Use Case</span>
                                             </button>
                                         </div>
                                     </div>
@@ -9493,7 +9493,7 @@
                                         <h3 className="font-semibold flex items-center gap-2">
                                             <Icons.Chart /> Analytics View
                                         </h3>
-                                        <div className="flex gap-1">
+                                        <div className={`${isMobile ? 'grid grid-cols-3 gap-1' : 'flex gap-1'}`}>
                                             <button onClick={() => setAnalyticsView('overall')} className={`px-3 py-1 text-xs rounded ${analyticsView === 'overall' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Overall</button>
                                             <button onClick={() => setAnalyticsView('category')} className={`px-3 py-1 text-xs rounded ${analyticsView === 'category' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Category</button>
                                             <button onClick={() => setAnalyticsView('channel')} className={`px-3 py-1 text-xs rounded ${analyticsView === 'channel' ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Channel</button>
@@ -9553,7 +9553,7 @@
                                                 setSelectedSpecialGroup(null);
                                                 setSelectedMetric(null);
                                             }}
-                                            className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 ml-auto"
+                                            className={`px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 ${isMobile ? 'col-span-2 mt-2' : 'ml-auto'}`}
                                             title="Clear all filters"
                                         >
                                             ✕ Clear
@@ -9573,20 +9573,22 @@
                                     </div>
 
                                     {/* Date Range Selector */}
-                                    <div className="date-range-picker mt-4">
-                                        <div className="date-input-group">
-                                            <label className="date-label">Start Month</label>
-                                            <input type="month" value={analyticsDateRange.start} onChange={(e) => setAnalyticsDateRange({ ...analyticsDateRange, start: e.target.value })} className="date-input" />
+                                    <div className={`mt-4 ${isMobile ? 'space-y-3' : 'date-range-picker'}`}>
+                                        <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'flex gap-4'}`}>
+                                            <div className="date-input-group">
+                                                <label className="date-label text-xs">Start Month</label>
+                                                <input type="month" value={analyticsDateRange.start} onChange={(e) => setAnalyticsDateRange({ ...analyticsDateRange, start: e.target.value })} className="date-input w-full" />
+                                            </div>
+                                            <div className="date-input-group">
+                                                <label className="date-label text-xs">End Month</label>
+                                                <input type="month" value={analyticsDateRange.end} onChange={(e) => setAnalyticsDateRange({ ...analyticsDateRange, end: e.target.value })} className="date-input w-full" />
+                                            </div>
                                         </div>
-                                        <div className="date-input-group">
-                                            <label className="date-label">End Month</label>
-                                            <input type="month" value={analyticsDateRange.end} onChange={(e) => setAnalyticsDateRange({ ...analyticsDateRange, end: e.target.value })} className="date-input" />
-                                        </div>
-                                        <div className="flex items-end">
-                                            <div className="px-4 py-2 bg-blue-100 text-blue-700 rounded">Analyzing {getFilteredMonths().length} months</div>
-                                            <div className="ml-auto flex gap-2">
-                                                <button onClick={exportAnalyticsCSV} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700">Export CSV</button>
-                                                <button onClick={exportAnalyticsExcel} className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Export Excel</button>
+                                        <div className={`${isMobile ? 'flex flex-col gap-2' : 'flex items-end'}`}>
+                                            <div className={`px-4 py-2 bg-blue-100 text-blue-700 rounded ${isMobile ? 'text-center' : ''}`}>Analyzing {getFilteredMonths().length} months</div>
+                                            <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'ml-auto flex gap-2'}`}>
+                                                <button onClick={exportAnalyticsCSV} className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">Export CSV</button>
+                                                <button onClick={exportAnalyticsExcel} className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Export Excel</button>
                                             </div>
                                         </div>
                                     </div>
@@ -9595,7 +9597,7 @@
                                 {/* Overall View - Charts */}
                                 {analyticsView === 'overall' && (
                                     <>
-                                        <div className="grid grid-cols-2 gap-6">
+                                        <div className={`${isMobile ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-2 gap-6'}`}>
                                             <div className="bg-white rounded-lg shadow-lg p-6">
                                                 <h3 className="text-lg font-semibold mb-4">Monthly Savings Trend</h3>
                                                 <div className="chart-container"><canvas ref={chartRefs.monthly}></canvas></div>
@@ -9605,7 +9607,7 @@
                                                 <div className="chart-container"><canvas ref={chartRefs.cumulative}></canvas></div>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-6">
+                                        <div className={`${isMobile ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-2 gap-6'}`}>
                                             <div className="bg-white rounded-lg shadow-lg p-6">
                                                 <h3 className="text-lg font-semibold mb-4">Savings by Category</h3>
                                                 <div className="chart-container"><canvas ref={chartRefs.category}></canvas></div>
@@ -9621,7 +9623,7 @@
                                 {/* Category View - Charts and Table */}
                                 {analyticsView === 'category' && (
                                     <>
-                                        <div className="grid grid-cols-2 gap-6 mb-6">
+                                        <div className={`${isMobile ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-2 gap-6'} mb-6`}>
                                             <div className="bg-white rounded-lg shadow-lg p-6">
                                                 <h3 className="text-lg font-semibold mb-4">Category Savings Trend</h3>
                                                 <div className="chart-container"><canvas ref={chartRefs.categoryTrend}></canvas></div>
@@ -9694,7 +9696,7 @@
                                 {/* Channel View - Charts and Table */}
                                 {analyticsView === 'channel' && (
                                     <>
-                                        <div className="grid grid-cols-2 gap-6 mb-6">
+                                        <div className={`${isMobile ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-2 gap-6'} mb-6`}>
                                             <div className="bg-white rounded-lg shadow-lg p-6">
                                                 <h3 className="text-lg font-semibold mb-4">Channel Savings Trend</h3>
                                                 <div className="chart-container"><canvas ref={chartRefs.channelTrend}></canvas></div>
@@ -9940,7 +9942,7 @@
                                 {/* Use Case View - Charts and Table */}
                                 {analyticsView === 'usecase' && (
                                     <>
-                                        <div className="grid grid-cols-2 gap-6 mb-6">
+                                        <div className={`${isMobile ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-2 gap-6'} mb-6`}>
                                             <div className="bg-white rounded-lg shadow-lg p-6">
                                                 <h3 className="text-lg font-semibold mb-4">Top 5 Use Cases Trend</h3>
                                                 <div className="chart-container"><canvas ref={chartRefs.usecaseTrend}></canvas></div>
@@ -10133,7 +10135,7 @@
                                 {/* Special Group View - Charts and Table */}
                                 {analyticsView === 'specialgroup' && (
                                     <>
-                                        <div className="grid grid-cols-2 gap-6 mb-6">
+                                        <div className={`${isMobile ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-2 gap-6'} mb-6`}>
                                             <div className="bg-white rounded-lg shadow-lg p-6">
                                                 <h3 className="text-lg font-semibold mb-4">Special Group Savings Trend</h3>
                                                 <div className="chart-container"><canvas ref={chartRefs.specialgroupTrend}></canvas></div>
