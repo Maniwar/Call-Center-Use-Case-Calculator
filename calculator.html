@@ -164,17 +164,28 @@
             
             /* Mobile inputs */
             input[type="number"],
-            input[type="text"],
-            select {
-                font-size: 16px !important; /* Prevents zoom on iOS */
-                min-height: 44px; /* Touch-friendly size */
+            input[type="text"] {
+                font-size: 16px !important; /* 16px prevents zoom on iOS */
+                min-height: 40px !important;
+                padding: 8px 12px !important;
             }
             
-            /* Mobile buttons */
+            /* Mobile buttons - smaller for mobile */
             button {
-                min-height: 44px;
-                min-width: 44px;
+                min-height: 32px !important;
+                font-size: 13px !important;
+                padding: 6px 10px !important;
                 touch-action: manipulation;
+            }
+            
+            /* Mobile dropdowns - minimal styling to allow native behavior */
+            select {
+                font-size: 16px; /* 16px prevents zoom on iOS */
+            }
+            
+            /* Don't override native select appearance on mobile */
+            select option {
+                font-size: 16px;
             }
             
             /* Mobile modals */
@@ -269,43 +280,7 @@
                 gap: 1rem !important;
             }
             
-            /* Mobile sponsor button */
-            .sponsor-btn-mobile {
-                position: fixed !important;
-                bottom: 20px !important;
-                right: 20px !important;
-                z-index: 999 !important;
-                border-radius: 50% !important;
-                width: 56px !important;
-                height: 56px !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-            }
-            
-            /* Mobile floating action button */
-            .fab-container {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                z-index: 998;
-            }
-            
-            .fab {
-                width: 56px;
-                height: 56px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                transition: transform 0.2s;
-            }
-            
-            .fab:active {
-                transform: scale(0.95);
-            }
+            /* Removed old floating button styles */
         }
         
         @media (max-width: 480px) {
@@ -1698,7 +1673,11 @@
             
             useEffect(() => {
                 const checkMobile = () => {
-                    setIsMobile(window.innerWidth <= 768);
+                    // Check for actual mobile device, not just screen size
+                    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    const isSmallScreen = window.innerWidth <= 768;
+                    // Consider it mobile if it's either a mobile device OR a small screen
+                    setIsMobile(isMobileDevice || isSmallScreen);
                 };
                 checkMobile();
                 window.addEventListener('resize', checkMobile);
@@ -7423,11 +7402,11 @@
                     <div className="w-full px-2 lg:px-4">
                         {/* Header */}
                         <div className="bg-white rounded-lg shadow-lg p-3 mb-3">
-                            <div className="flex justify-between items-center mb-4">
+                            <div className={`${isMobile ? 'flex flex-col gap-3' : 'flex justify-between items-center'} mb-4`}>
                                 <div>
-                                    <h1 className="text-3xl font-bold flex items-center gap-3">
+                                    <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold flex items-center gap-3`}>
                                         <span className="logo-animated">
-                                            <svg width="40" height="40" viewBox="0 0 40 40" className="logo-rotate">
+                                            <svg width={isMobile ? "30" : "40"} height={isMobile ? "30" : "40"} viewBox="0 0 40 40" className="logo-rotate">
                                                 <defs>
                                                     <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                                         <stop offset="0%" stopColor="#3B82F6" />
@@ -7446,11 +7425,11 @@
                                                 </circle>
                                             </svg>
                                         </span>
-                                        <span className="title-gradient">AI Contact Center ROI Calculator</span>
+                                        <span className="title-gradient">{isMobile ? 'AI ROI Calculator' : 'AI Contact Center ROI Calculator'}</span>
                                     </h1>
-                                    <p className="text-gray-600 mt-2 flex items-center gap-2">
+                                    <p className={`text-gray-600 mt-2 flex items-center gap-2 ${isMobile ? 'text-sm' : ''}`}>
                                         <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                        Advanced cost modeling with category and group pricing
+                                        {isMobile ? 'Advanced cost modeling' : 'Advanced cost modeling with category and group pricing'}
                                     </p>
                                     {showSaveIndicator && (
                                         <p className="text-green-600 text-sm mt-1 flex items-center gap-1">
@@ -7458,18 +7437,18 @@
                                         </p>
                                     )}
                                 </div>
-                                <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'flex gap-3'} no-print`}>
+                                <div className={`${isMobile ? 'grid grid-cols-2 gap-2 w-full' : 'flex gap-3'} no-print`}>
                                     <button
                                         onClick={() => setShowSettings(!showSettings)}
-                                        className={`flex items-center ${isMobile ? 'justify-center' : ''} gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700`}
+                                        className={`flex items-center ${isMobile ? 'justify-center px-3 py-1.5' : 'px-4 py-2'} gap-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700`}
                                     >
-                                        <Icons.Settings /> <span className={isMobile ? 'text-sm' : ''}>Cost Settings</span>
+                                        <Icons.Settings /> <span className={isMobile ? 'text-xs' : ''}>Cost Settings</span>
                                     </button>
                                     <button
                                         onClick={clearAllDataAndReset}
-                                        className={`flex items-center ${isMobile ? 'justify-center' : ''} gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700`}
+                                        className={`flex items-center ${isMobile ? 'justify-center px-3 py-1.5' : 'px-4 py-2'} gap-2 bg-red-600 text-white rounded-lg hover:bg-red-700`}
                                     >
-                                        <Icons.Clear /> <span className={isMobile ? 'text-sm' : ''}>Clear All</span>
+                                        <Icons.Clear /> <span className={isMobile ? 'text-xs' : ''}>Clear All</span>
                                     </button>
                                 </div>
                             </div>
@@ -7591,23 +7570,28 @@
                                 </div>
                                 
                                 {/* Date Range Selector */}
-                                <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-4">
-                                    <Icons.Calendar className="text-gray-500" />
-                                    <input
-                                        type="month"
-                                        value={dateRange.start}
-                                        onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                                        className="px-2 py-1 text-sm border rounded bg-white"
-                                        title="Start Month"
-                                    />
-                                    <span className="text-sm text-gray-500">to</span>
-                                    <input
-                                        type="month"
-                                        value={dateRange.end}
-                                        onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                                        className="px-2 py-1 text-sm border rounded bg-white"
-                                        title="End Month"
-                                    />
+                                <div className={`${isMobile ? 'flex flex-col gap-2' : 'flex items-center gap-2'} bg-gray-50 rounded-lg p-4`}>
+                                    <div className="flex items-center gap-2">
+                                        <Icons.Calendar className="text-gray-500" />
+                                        <span className="text-sm font-medium text-gray-700">Date Range</span>
+                                    </div>
+                                    <div className={`${isMobile ? 'flex flex-col gap-2 w-full' : 'flex items-center gap-2'}`}>
+                                        <input
+                                            type="month"
+                                            value={dateRange.start}
+                                            onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                                            className={`px-2 py-1 text-sm border rounded bg-white ${isMobile ? 'w-full' : ''}`}
+                                            title="Start Month"
+                                        />
+                                        <span className={`text-sm text-gray-500 ${isMobile ? 'text-center' : ''}`}>to</span>
+                                        <input
+                                            type="month"
+                                            value={dateRange.end}
+                                            onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                                            className={`px-2 py-1 text-sm border rounded bg-white ${isMobile ? 'w-full' : ''}`}
+                                            title="End Month"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -8884,31 +8868,50 @@
 
                                 {/* Table Controls */}
                                 <div className="bg-white rounded-lg shadow p-3 mb-4">
-                                    <div className="flex gap-3 items-center justify-between">
-                                        <div className="flex gap-3 items-center">
-                                            {/* Bulk Edit Mode Toggle */}
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="checkbox"
-                                                    id="bulkEditMode"
-                                                    checked={bulkEditMode}
-                                                    onChange={(e) => {
-                                                        setBulkEditMode(e.target.checked);
-                                                        setSelectedUseCases(new Set());
-                                                    }}
-                                                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                                                />
-                                                <label htmlFor="bulkEditMode" className="text-sm font-medium text-gray-700">
-                                                    Bulk Edit Mode
-                                                </label>
+                                    {isMobile ? (
+                                        // Mobile layout - stack controls vertically
+                                        <div className="flex flex-col gap-3">
+                                            {/* Bulk Edit Row */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="flex items-center justify-center gap-2 bg-gray-50 rounded p-2 min-h-[44px]">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="bulkEditMode"
+                                                        checked={bulkEditMode}
+                                                        onChange={(e) => {
+                                                            setBulkEditMode(e.target.checked);
+                                                            setSelectedUseCases(new Set());
+                                                        }}
+                                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                                    />
+                                                    <label htmlFor="bulkEditMode" className="text-sm font-medium text-gray-700">
+                                                        Bulk Edit
+                                                    </label>
+                                                </div>
+                                                
+                                                {/* AHT Mode for mobile - simplified */}
+                                                {hasAHTWithPerContactBilling() && (
+                                                    <div className="flex items-center justify-center gap-2 bg-gray-50 rounded p-2 min-h-[44px]">
+                                                        <input
+                                                            type="checkbox"
+                                                            id="ahtMode"
+                                                            checked={ahtNegotiationMode}
+                                                            onChange={(e) => setAhtNegotiationMode(e.target.checked)}
+                                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                                        />
+                                                        <label htmlFor="ahtMode" className="text-sm font-medium text-gray-700">
+                                                            AHT Mode
+                                                        </label>
+                                                    </div>
+                                                )}
                                             </div>
                                             
-                                            {/* Undo/Redo Buttons */}
-                                            <div className="flex gap-1">
+                                            {/* Undo/Redo Row */}
+                                            <div className="grid grid-cols-2 gap-2">
                                                 <button
                                                     onClick={undo}
                                                     disabled={undoStack.length === 0}
-                                                    className={`px-3 py-2 rounded text-sm ${undoStack.length > 0 ? 'bg-gray-600 hover:bg-gray-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                                                    className={`px-2 py-1 rounded text-sm flex items-center justify-center gap-1 min-h-[32px] ${undoStack.length > 0 ? 'bg-gray-600 hover:bg-gray-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                                                     title="Undo (Ctrl+Z)"
                                                 >
                                                     ↶ Undo
@@ -8916,61 +8919,126 @@
                                                 <button
                                                     onClick={redo}
                                                     disabled={redoStack.length === 0}
-                                                    className={`px-3 py-2 rounded text-sm ${redoStack.length > 0 ? 'bg-gray-600 hover:bg-gray-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                                                    className={`px-2 py-1 rounded text-sm flex items-center justify-center gap-1 min-h-[32px] ${redoStack.length > 0 ? 'bg-gray-600 hover:bg-gray-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                                                     title="Redo (Ctrl+Shift+Z)"
                                                 >
                                                     ↷ Redo
                                                 </button>
                                             </div>
                                             
-                                            {/* Show Unsaved Changes Indicator */}
+                                            {/* Unsaved changes indicator for mobile */}
                                             {unsavedChanges.size > 0 && (
-                                                <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded text-sm">
+                                                <div className="bg-yellow-100 text-yellow-800 px-3 py-2 rounded text-sm text-center">
                                                     {unsavedChanges.size} unsaved change{unsavedChanges.size > 1 ? 's' : ''}
                                                 </div>
                                             )}
                                             
-                                            {/* AHT Negotiation Mode Toggle */}
-                                            {hasAHTWithPerContactBilling() && (
-                                                <div className="flex items-center gap-2 ml-4">
-                                                    <label className="flex items-center gap-2 cursor-pointer" title="When enabled, calculates potential savings from AHT reductions even with per-contact billing (for contract negotiations)">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={ahtNegotiationMode}
-                                                            onChange={(e) => setAhtNegotiationMode(e.target.checked)}
-                                                            className="form-checkbox h-4 w-4 text-blue-600"
-                                                        />
-                                                        <span className="text-sm font-medium">AHT Negotiation Mode</span>
+                                            {/* Templates and Add Use Case Row - moved to bottom on mobile */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    onClick={() => setShowTemplates(!showTemplates)}
+                                                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center justify-center gap-2 text-sm min-h-[44px]"
+                                                >
+                                                    <Icons.FileText /> <span>{showTemplates ? 'Hide' : 'Templates'}</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowAddUseCase(!showAddUseCase)}
+                                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2 text-sm min-h-[44px]"
+                                                >
+                                                    <span className="text-lg">+</span> <span>Add Use Case</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        // Desktop layout - horizontal arrangement
+                                        <div className="flex gap-3 items-center justify-between">
+                                            <div className="flex gap-3 items-center">
+                                                {/* Bulk Edit Mode Toggle */}
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="bulkEditMode"
+                                                        checked={bulkEditMode}
+                                                        onChange={(e) => {
+                                                            setBulkEditMode(e.target.checked);
+                                                            setSelectedUseCases(new Set());
+                                                        }}
+                                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                                    />
+                                                    <label htmlFor="bulkEditMode" className="text-sm font-medium text-gray-700">
+                                                        Bulk Edit Mode
                                                     </label>
-                                                    {ahtNegotiationMode ? (
-                                                        <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                                                            Calculating negotiation leverage
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                                                            ⚠️ AHT savings benefit vendor (per-contact billing)
-                                                        </span>
-                                                    )}
                                                 </div>
-                                            )}
+                                                
+                                                {/* Undo/Redo Buttons */}
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={undo}
+                                                        disabled={undoStack.length === 0}
+                                                        className={`px-3 py-2 rounded text-sm ${undoStack.length > 0 ? 'bg-gray-600 hover:bg-gray-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                                                        title="Undo (Ctrl+Z)"
+                                                    >
+                                                        ↶ Undo
+                                                    </button>
+                                                    <button
+                                                        onClick={redo}
+                                                        disabled={redoStack.length === 0}
+                                                        className={`px-3 py-2 rounded text-sm ${redoStack.length > 0 ? 'bg-gray-600 hover:bg-gray-700 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                                                        title="Redo (Ctrl+Shift+Z)"
+                                                    >
+                                                        ↷ Redo
+                                                    </button>
+                                                </div>
+                                                
+                                                {/* Show Unsaved Changes Indicator */}
+                                                {unsavedChanges.size > 0 && (
+                                                    <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded text-sm">
+                                                        {unsavedChanges.size} unsaved change{unsavedChanges.size > 1 ? 's' : ''}
+                                                    </div>
+                                                )}
+                                                
+                                                {/* AHT Negotiation Mode Toggle */}
+                                                {hasAHTWithPerContactBilling() && (
+                                                    <div className="flex items-center gap-2 ml-4">
+                                                        <label className="flex items-center gap-2 cursor-pointer" title="When enabled, calculates potential savings from AHT reductions even with per-contact billing (for contract negotiations)">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={ahtNegotiationMode}
+                                                                onChange={(e) => setAhtNegotiationMode(e.target.checked)}
+                                                                className="form-checkbox h-4 w-4 text-blue-600"
+                                                            />
+                                                            <span className="text-sm font-medium">AHT Negotiation Mode</span>
+                                                        </label>
+                                                        {ahtNegotiationMode ? (
+                                                            <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                                                                Calculating negotiation leverage
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                                                                ⚠️ AHT savings benefit vendor (per-contact billing)
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            {/* Action buttons on the right */}
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setShowTemplates(!showTemplates)}
+                                                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center gap-2 text-sm"
+                                                >
+                                                    <Icons.FileText /> {showTemplates ? 'Hide' : 'Show'} Templates
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowAddUseCase(!showAddUseCase)}
+                                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2 text-sm"
+                                                >
+                                                    <span className="text-lg">+</span> Add Use Case
+                                                </button>
+                                            </div>
                                         </div>
-                                        
-                                        {/* Action buttons on the right */}
-                                        <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'flex gap-2'}`}>
-                                            <button
-                                                onClick={() => setShowTemplates(!showTemplates)}
-                                                className={`bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center ${isMobile ? 'justify-center' : ''} gap-2 text-sm`}
-                                            >
-                                                <Icons.FileText /> <span className={isMobile ? 'text-xs' : ''}>{showTemplates ? 'Hide' : 'Show'} Templates</span>
-                                            </button>
-                                            <button
-                                                onClick={() => setShowAddUseCase(!showAddUseCase)}
-                                                className={`bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center ${isMobile ? 'justify-center' : ''} gap-2 text-sm`}
-                                            >
-                                                <span className="text-lg">+</span> <span className={isMobile ? 'text-xs' : ''}>Add Use Case</span>
-                                            </button>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
 
                                 {/* Add Use Case Form */}
@@ -8978,7 +9046,7 @@
                                     <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
                                         <div className="bg-blue-50 px-6 py-4 rounded">
                                             {/* Basic Use Case Info */}
-                                            <div className="grid grid-cols-4 gap-3 mb-4">
+                                            <div className={`${isMobile ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-4 gap-3'} mb-4`}>
                                                 <select
                                                     value={newUseCase.category}
                                                     onChange={(e) => setNewUseCase({...newUseCase, category: e.target.value})}
@@ -9021,7 +9089,7 @@
                                                 <h4 className="font-medium mb-2">Benefits (Value Drivers)</h4>
                                                 {newUseCase.benefits.map((benefit, index) => (
                                                     <div key={index} className="mb-3">
-                                                        <div className="grid grid-cols-6 gap-2 mb-1 items-center">
+                                                        <div className={`${isMobile ? 'grid grid-cols-1 gap-2' : 'grid grid-cols-6 gap-2'} mb-1 items-center`}>
                                                             <select
                                                                 value={benefit.metric}
                                                                 onChange={(e) => {
@@ -9029,13 +9097,13 @@
                                                                     updatedBenefits[index].metric = e.target.value;
                                                                     setNewUseCase({...newUseCase, benefits: updatedBenefits});
                                                                 }}
-                                                                className="px-2 py-1 border rounded text-sm col-span-3"
+                                                                className={`px-2 py-1 border rounded text-sm ${isMobile ? 'w-full' : 'col-span-3'}`}
                                                             >
                                                                 {getAvailableMetrics().map(metric => (
                                                                     <option key={metric} value={metric} disabled={newUseCase.benefits.some((b, idx) => idx !== index && b.metric === metric)}>{metric}</option>
                                                                 ))}
                                                             </select>
-                                                            <div className="col-span-2">
+                                                            <div className={`${isMobile ? 'w-full' : 'col-span-2'}`}>
                                                                 <label className="text-xs text-gray-600 block mb-1">
                                                                     Baseline {benefit.metric.includes('min') ? '(minutes)' : benefit.metric.includes('points') ? '(points)' : '(%)'}
                                                                 </label>
@@ -9117,7 +9185,7 @@
                                             <thead className="bg-gradient-to-r from-blue-700 to-indigo-700 text-white sticky top-0 z-20 shadow-lg">
                                                 <tr>
                                                     {bulkEditMode && (
-                                                        <th className="px-2 py-2 text-center sticky left-0 z-30 bg-gradient-to-r from-blue-700 to-indigo-700 shadow-lg">
+                                                        <th className={`px-2 py-2 text-center sticky left-0 z-30 bg-gradient-to-r from-blue-700 to-indigo-700 shadow-lg`}>
                                                             <input
                                                                 type="checkbox"
                                                                 checked={useCases.length > 0 && selectedUseCases.size === useCases.length}
@@ -9132,9 +9200,9 @@
                                                             />
                                                         </th>
                                                     )}
-                                                    <th className={`px-2 py-2 text-left text-xs sticky ${bulkEditMode ? 'left-12' : 'left-0'} z-30 bg-gradient-to-r from-blue-700 to-indigo-700 shadow-lg min-w-[120px]`}>Category</th>
-                                                    <th className={`px-2 py-2 text-left text-xs sticky ${bulkEditMode ? 'left-36' : 'left-28'} z-30 bg-gradient-to-r from-blue-700 to-indigo-700 shadow-lg min-w-[200px]`}>Use Case</th>
-                                                    <th className={`px-2 py-2 text-left text-xs sticky ${bulkEditMode ? 'left-80' : 'left-72'} z-30 bg-gradient-to-r from-blue-700 to-indigo-700 shadow-lg min-w-[140px]`}>Channel & Group</th>
+                                                    <th className={`px-2 py-2 text-left text-xs sticky left-0 z-30 bg-gradient-to-r from-blue-700 to-indigo-700 shadow-lg min-w-[120px]`}>Category</th>
+                                                    <th className={`px-2 py-2 text-left text-xs ${!isMobile ? `sticky ${bulkEditMode ? 'left-36' : 'left-28'} z-30` : ''} bg-gradient-to-r from-blue-700 to-indigo-700 shadow-lg min-w-[200px]`}>Use Case</th>
+                                                    <th className={`px-2 py-2 text-left text-xs ${!isMobile ? `sticky ${bulkEditMode ? 'left-80' : 'left-72'} z-30` : ''} bg-gradient-to-r from-blue-700 to-indigo-700 shadow-lg min-w-[140px]`}>Channel & Group</th>
                                                     {months.map(month => (
                                                         <th key={month.id} className="px-1 py-1.5 text-center min-w-[140px] max-w-[160px]">
                                                             <div className="text-xs font-semibold">{month.month.substring(0, 3)} '{String(month.year).substring(2)}</div>
@@ -9165,7 +9233,7 @@
                                                     return (
                                                         <tr key={useCase.id} className={`${selectedUseCases.has(useCase.id) ? 'row-selected ring-2 ring-blue-300' : (index % 2 === 0 ? 'row-even' : 'row-odd')} transition-colors`} style={{borderBottom: '2px solid rgba(147, 197, 253, 0.5)'}}>
                                                             {bulkEditMode && (
-                                                                <td className="px-2 py-1.5 text-center sticky left-0 z-10">
+                                                                <td className={`px-2 py-1.5 text-center sticky left-0 z-10`}>
                                                                     <input
                                                                         type="checkbox"
                                                                         checked={selectedUseCases.has(useCase.id)}
@@ -9182,28 +9250,60 @@
                                                                     />
                                                                 </td>
                                                             )}
-                                                            <td className={`px-2 py-1.5 text-xs sticky ${bulkEditMode ? 'left-12' : 'left-0'} z-10 min-w-[120px]`}>
-                                                                <select
-                                                                    value={useCase.category}
-                                                                    onChange={(e) => {
-                                                                        // Save to undo stack before making changes
-                                                                        setUndoStack(prev => [...prev.slice(-49), deepCopyUseCases(useCases)]);
-                                                                        setRedoStack([]);
-                                                                        
-                                                                        setUseCases(useCases.map(uc => 
-                                                                            uc.id === useCase.id 
-                                                                                ? {...uc, category: e.target.value}
-                                                                                : uc
-                                                                        ));
-                                                                    }}
-                                                                    className="text-[11px] border rounded px-1 py-0.5 w-full"
-                                                                >
-                                                                    {categories.map(cat => (
-                                                                        <option key={cat} value={cat}>{cat}</option>
-                                                                    ))}
-                                                                </select>
+                                                            <td className={`px-2 py-1.5 text-xs sticky left-0 z-10 min-w-[120px]`}>
+                                                                {isMobile ? (
+                                                                    // Mobile: Use a basic select with no styling classes
+                                                                    <select
+                                                                        value={useCase.category}
+                                                                        onChange={(e) => {
+                                                                            // Save to undo stack before making changes
+                                                                            setUndoStack(prev => [...prev.slice(-49), deepCopyUseCases(useCases)]);
+                                                                            setRedoStack([]);
+                                                                            
+                                                                            setUseCases(useCases.map(uc => 
+                                                                                uc.id === useCase.id 
+                                                                                    ? {...uc, category: e.target.value}
+                                                                                    : uc
+                                                                            ));
+                                                                        }}
+                                                                        style={{
+                                                                            width: '100%',
+                                                                            fontSize: '16px',
+                                                                            padding: '8px',
+                                                                            border: '1px solid #d1d5db',
+                                                                            borderRadius: '4px',
+                                                                            backgroundColor: 'white'
+                                                                            // Don't set any appearance properties - let browser use native
+                                                                        }}
+                                                                    >
+                                                                        {categories.map(cat => (
+                                                                            <option key={cat} value={cat}>{cat}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                ) : (
+                                                                    // Desktop: Keep the styled select
+                                                                    <select
+                                                                        value={useCase.category}
+                                                                        onChange={(e) => {
+                                                                            // Save to undo stack before making changes
+                                                                            setUndoStack(prev => [...prev.slice(-49), deepCopyUseCases(useCases)]);
+                                                                            setRedoStack([]);
+                                                                            
+                                                                            setUseCases(useCases.map(uc => 
+                                                                                uc.id === useCase.id 
+                                                                                    ? {...uc, category: e.target.value}
+                                                                                    : uc
+                                                                            ));
+                                                                        }}
+                                                                        className="text-[11px] border rounded px-1 py-0.5 w-full"
+                                                                    >
+                                                                        {categories.map(cat => (
+                                                                            <option key={cat} value={cat}>{cat}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                )}
                                                             </td>
-                                                            <td className={`px-2 py-1.5 text-xs sticky ${bulkEditMode ? 'left-36' : 'left-28'} z-10 min-w-[200px]`}>
+                                                            <td className={`px-2 py-1.5 text-xs ${!isMobile ? `sticky ${bulkEditMode ? 'left-36' : 'left-28'} z-10` : ''} min-w-[200px]`}>
                                                                 <div title={useCase.name} className="font-medium truncate max-w-[180px]">{useCase.name}</div>
                                                                 {normalizedUseCase.benefits.length > 0 && (
                                                                     <div className="mt-1 space-y-0.5">
@@ -9246,7 +9346,7 @@
                                                                     </div>
                                                                 )}
                                                             </td>
-                                                            <td className={`px-2 py-1.5 text-xs sticky ${bulkEditMode ? 'left-80' : 'left-72'} z-10 min-w-[140px]`}>
+                                                            <td className={`px-2 py-1.5 text-xs ${!isMobile ? `sticky ${bulkEditMode ? 'left-80' : 'left-72'} z-10` : ''} min-w-[140px]`}>
                                                                 <select
                                                                     value={useCase.channel}
                                                                     onChange={(e) => {
@@ -9574,12 +9674,12 @@
 
                                     {/* Date Range Selector */}
                                     <div className={`mt-4 ${isMobile ? 'space-y-3' : 'date-range-picker'}`}>
-                                        <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'flex gap-4'}`}>
-                                            <div className="date-input-group">
+                                        <div className={`${isMobile ? 'flex flex-col gap-3' : 'flex gap-4'}`}>
+                                            <div className="date-input-group flex-1">
                                                 <label className="date-label text-xs">Start Month</label>
                                                 <input type="month" value={analyticsDateRange.start} onChange={(e) => setAnalyticsDateRange({ ...analyticsDateRange, start: e.target.value })} className="date-input w-full" />
                                             </div>
-                                            <div className="date-input-group">
+                                            <div className="date-input-group flex-1">
                                                 <label className="date-label text-xs">End Month</label>
                                                 <input type="month" value={analyticsDateRange.end} onChange={(e) => setAnalyticsDateRange({ ...analyticsDateRange, end: e.target.value })} className="date-input w-full" />
                                             </div>
@@ -10251,82 +10351,101 @@
                             <div className="space-y-6">
                                 {/* Filter Controls */}
                                 <div className="bg-white rounded-lg shadow-lg p-4">
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-sm font-medium text-gray-600">Filters:</span>
+                                    <div className={`${isMobile ? 'flex flex-col gap-3' : 'flex items-center gap-4'}`}>
+                                        <div className={`${isMobile ? 'flex justify-between items-center' : 'flex items-center gap-4'}`}>
+                                            <span className="text-sm font-medium text-gray-600">Filters:</span>
+                                            {isMobile && (
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedCategory('all');
+                                                        setSelectedChannel('all');
+                                                        setSelectedSpecialGroup(null);
+                                                        setSelectedMetric(null);
+                                                    }}
+                                                    className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700"
+                                                >
+                                                    Clear
+                                                </button>
+                                            )}
+                                        </div>
                                         
-                                        {/* Category Filter */}
-                                        <select 
-                                            value={selectedCategory} 
-                                            onChange={(e) => setSelectedCategory(e.target.value)} 
-                                            className="px-3 py-1.5 border rounded text-sm"
-                                        >
-                                            <option value="all">All Categories</option>
-                                            {getCategories().map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
-                                            ))}
-                                        </select>
-                                        
-                                        {/* Channel Filter */}
-                                        <select 
-                                            value={selectedChannel} 
-                                            onChange={(e) => setSelectedChannel(e.target.value)} 
-                                            className="px-3 py-1.5 border rounded text-sm"
-                                        >
-                                            <option value="all">All Channels</option>
-                                            {ALL_CHANNELS.map(ch => (
-                                                <option key={ch.id} value={ch.id} className="capitalize">
-                                                    {ch.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        
-                                        {/* Special Group Filter */}
-                                        <select 
-                                            value={selectedSpecialGroup || ''} 
-                                            onChange={(e) => setSelectedSpecialGroup(e.target.value || null)} 
-                                            className="px-3 py-1.5 border rounded text-sm"
-                                        >
-                                            <option value="">All Special Groups</option>
-                                            <option value="none">No Special Group</option>
-                                            {Array.from(new Set(
-                                                useCases
-                                                    .map(uc => uc.specialGroup)
-                                                    .filter(sg => sg)
-                                            )).sort().map(group => (
-                                                <option key={group} value={group}>{group}</option>
-                                            ))}
-                                        </select>
-                                        
-                                        {/* Benefit/Metric Filter */}
-                                        <select 
-                                            value={selectedMetric || 'all'} 
-                                            onChange={(e) => setSelectedMetric(e.target.value === 'all' ? null : e.target.value)} 
-                                            className="px-3 py-1.5 border rounded text-sm"
-                                        >
-                                            <option value="all">All Benefits</option>
-                                            {[...new Set(useCases.flatMap(uc => {
-                                                const normalized = ensureUseCaseHasBenefits(uc);
-                                                return normalized.benefits.map(benefit => benefit.metric);
-                                            }))].sort().map(metric => (
-                                                <option key={metric} value={metric}>{metric}</option>
-                                            ))}
-                                        </select>
-                                        
-                                        {/* Clear Filters Button */}
-                                        <button
-                                            onClick={() => {
-                                                setSelectedCategory('all');
-                                                setSelectedChannel('all');
-                                                setSelectedSpecialGroup(null);
-                                                setSelectedMetric(null);
-                                            }}
-                                            className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700"
-                                        >
-                                            Clear Filters
-                                        </button>
+                                        <div className={`${isMobile ? 'grid grid-cols-2 gap-2' : 'flex gap-4 items-center flex-1'}`}>
+                                            {/* Category Filter */}
+                                            <select 
+                                                value={selectedCategory} 
+                                                onChange={(e) => setSelectedCategory(e.target.value)} 
+                                                className="px-3 py-1.5 border rounded text-sm"
+                                            >
+                                                <option value="all">All Categories</option>
+                                                {getCategories().map(cat => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
+                                            
+                                            {/* Channel Filter */}
+                                            <select 
+                                                value={selectedChannel} 
+                                                onChange={(e) => setSelectedChannel(e.target.value)} 
+                                                className="px-3 py-1.5 border rounded text-sm"
+                                            >
+                                                <option value="all">All Channels</option>
+                                                {ALL_CHANNELS.map(ch => (
+                                                    <option key={ch.id} value={ch.id} className="capitalize">
+                                                        {ch.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            
+                                            {/* Special Group Filter */}
+                                            <select 
+                                                value={selectedSpecialGroup || ''} 
+                                                onChange={(e) => setSelectedSpecialGroup(e.target.value || null)} 
+                                                className="px-3 py-1.5 border rounded text-sm"
+                                            >
+                                                <option value="">All Groups</option>
+                                                <option value="none">No Special Group</option>
+                                                {Array.from(new Set(
+                                                    useCases
+                                                        .map(uc => uc.specialGroup)
+                                                        .filter(sg => sg)
+                                                )).sort().map(group => (
+                                                    <option key={group} value={group}>{group}</option>
+                                                ))}
+                                            </select>
+                                            
+                                            {/* Benefit/Metric Filter */}
+                                            <select 
+                                                value={selectedMetric || 'all'} 
+                                                onChange={(e) => setSelectedMetric(e.target.value === 'all' ? null : e.target.value)} 
+                                                className="px-3 py-1.5 border rounded text-sm"
+                                            >
+                                                <option value="all">All Metrics</option>
+                                                {[...new Set(useCases.flatMap(uc => {
+                                                    const normalized = ensureUseCaseHasBenefits(uc);
+                                                    return normalized.benefits.map(benefit => benefit.metric);
+                                                }))].sort().map(metric => (
+                                                    <option key={metric} value={metric}>{metric}</option>
+                                                ))}
+                                            </select>
+                                            
+                                            {/* Clear Filters Button - Desktop Only */}
+                                            {!isMobile && (
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedCategory('all');
+                                                        setSelectedChannel('all');
+                                                        setSelectedSpecialGroup(null);
+                                                        setSelectedMetric(null);
+                                                    }}
+                                                    className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700"
+                                                >
+                                                    Clear Filters
+                                                </button>
+                                            )}
+                                        </div>
                                         
                                         {/* Active Filter Count */}
-                                        <div className="ml-auto text-sm text-gray-600">
+                                        <div className={`text-sm text-gray-600 ${isMobile ? 'text-center' : 'ml-auto'}`}>
                                             {(() => {
                                                 let activeFilters = 0;
                                                 if (selectedCategory !== 'all') activeFilters++;
@@ -11235,17 +11354,31 @@
                         {/* Guidance Modal */}
                         <GuidanceModal />
                         
-                        {/* Mobile Floating Sponsor Button */}
+                        {/* Mobile Floating Sponsor Button - Top right */}
                         {isMobile && (
-                            <button
+                            <div
                                 onClick={() => setShowSponsorOverlay(true)}
-                                className="sponsor-btn-mobile bg-gradient-to-r from-pink-500 to-purple-600 text-white"
-                                title="Support this free tool"
+                                style={{
+                                    position: 'fixed',
+                                    top: '10px',
+                                    right: '10px',
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                                    zIndex: 9999,
+                                    cursor: 'pointer',
+                                    WebkitTapHighlightColor: 'transparent'
+                                }}
+                                role="button"
+                                aria-label="Support"
                             >
-                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                                </svg>
-                            </button>
+                                <div style={{ color: 'white', fontSize: '18px', lineHeight: '1' }}>♥</div>
+                            </div>
                         )}
                         
                         {/* Edit Use Case Modal */}
