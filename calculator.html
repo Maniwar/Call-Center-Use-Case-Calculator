@@ -883,7 +883,8 @@
                     description: "Expected NPS point increase from AI implementation",
                     typical: "5-15 points",
                     example: "If NPS improves from 30 to 40, enter 10",
-                    formula: "Survey Count × Points Improved × $50 (customer lifetime value impact)"
+                    formula: "Survey Count × Points Improved × $ Value per Point",
+                    dollarConversion: "💡 How to calculate $ value per NPS point: (1) Take your average customer lifetime value (CLV), (2) Multiply by churn reduction per point (typically 0.5-2%), (3) Example: $5,000 CLV × 1% = $50/point. Industry avg: $50-200. Configure in Settings → Category Metric Values."
                 },
                 industryBenchmarks: {
                     "Faster Resolution": "8-12 points",
@@ -908,7 +909,8 @@
                     description: "Expected CSAT percentage point increase",
                     typical: "10-20%",
                     example: "If CSAT improves from 75% to 85%, enter 10",
-                    formula: "Surveyed Volume × (% Improvement / 100) × $25 (retention value)"
+                    formula: "Surveyed Volume × (% Improvement / 100) × $ Value per Point",
+                    dollarConversion: "💡 How to calculate $ value per CSAT point: (1) Estimate revenue at risk from dissatisfied customers, (2) Divide by total survey responses, (3) Multiply by retention improvement rate (typically 0.3-1%), (4) Example: $100K at risk / 1000 surveys × 0.5% = $25/point. Configure in Settings → Category Metric Values."
                 },
                 industryBenchmarks: {
                     "Chatbot Assistance": "8-15%",
@@ -6984,6 +6986,13 @@
                                                 <p className="text-sm mt-2 text-purple-700">
                                                     CSAT improvements drive retention and positive word-of-mouth
                                                 </p>
+                                            )}
+                                            {guide.improvement.dollarConversion && (
+                                                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                                    <p className="text-sm text-yellow-800">
+                                                        {guide.improvement.dollarConversion}
+                                                    </p>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
