@@ -1353,6 +1353,7 @@
             const [selectedMetric, setSelectedMetric] = useState(null);
             const [showSettings, setShowSettings] = useState(false);
             const [showAddUseCase, setShowAddUseCase] = useState(false);
+            const [showTemplates, setShowTemplates] = useState(false); // Toggle for template library
             const [showGuidanceModal, setShowGuidanceModal] = useState(false);
             const [selectedMetricGuide, setSelectedMetricGuide] = useState(null);
             const [lastSaved, setLastSaved] = useState(new Date());
@@ -7697,11 +7698,21 @@
                                     </div>
                                 </div>
                                 
-                                {/* Templates Panel */}
+                                {/* Templates Panel - Conditionally Rendered */}
+                                {showTemplates && (
                                 <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
-                                    <h3 className="font-semibold mb-4 flex items-center gap-2">
-                                        <Icons.FileText /> Data Templates
-                                    </h3>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="font-semibold flex items-center gap-2">
+                                            <Icons.FileText /> Data Templates
+                                        </h3>
+                                        <button
+                                            onClick={() => setShowTemplates(false)}
+                                            className="text-gray-500 hover:text-gray-700"
+                                            title="Close templates"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
                                     
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         {/* Save Template */}
@@ -7766,6 +7777,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                )}
                                 
                                 {/* Bulk Edit Help Panel */}
                                 {bulkEditMode && (
@@ -8508,13 +8520,21 @@
                                             )}
                                         </div>
                                         
-                                        {/* Add Use Case button on the right */}
-                                        <button
-                                            onClick={() => setShowAddUseCase(!showAddUseCase)}
-                                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2 text-sm"
-                                        >
-                                            <span className="text-lg">+</span> Add Use Case
-                                        </button>
+                                        {/* Action buttons on the right */}
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setShowTemplates(!showTemplates)}
+                                                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center gap-2 text-sm"
+                                            >
+                                                <Icons.FileText /> {showTemplates ? 'Hide' : 'Show'} Templates
+                                            </button>
+                                            <button
+                                                onClick={() => setShowAddUseCase(!showAddUseCase)}
+                                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2 text-sm"
+                                            >
+                                                <span className="text-lg">+</span> Add Use Case
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
