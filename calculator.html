@@ -7230,6 +7230,9 @@
                                     <div className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded">
                                         <strong>💡 Cost Configuration:</strong> Set different costs for each category-channel combination.
                                         <div className="mt-2">
+                                            <strong>Blue checkmarks (✓):</strong> Indicate channels that have active use cases in that category. This helps you see which configurations are actually being used.
+                                        </div>
+                                        <div className="mt-2">
                                             <strong>For Hourly Costs:</strong>
                                             <ul className="ml-4 mt-1">
                                                 <li>• <strong>AHT (Average Handle Time):</strong> Minutes per contact</li>
@@ -7273,7 +7276,8 @@
                                                                 
                                                                 return (
                                                                     <div key={channel} className="flex items-center gap-3 p-2 bg-white rounded border">
-                                                                        <span className={`w-20 text-sm font-medium ${hasUseCases ? 'text-blue-600' : 'text-gray-500'}`}>
+                                                                        <span className={`w-20 text-sm font-medium ${hasUseCases ? 'text-blue-600' : 'text-gray-500'}`} 
+                                                                              title={hasUseCases ? 'This channel has active use cases in this category' : 'No use cases for this channel in this category'}>
                                                                             {getChannelConfig(channel).label}{hasUseCases ? ' ✓' : ''}:
                                                                         </span>
                                                                         
