@@ -1357,6 +1357,7 @@
             const [selectedMetricGuide, setSelectedMetricGuide] = useState(null);
             const [lastSaved, setLastSaved] = useState(new Date());
             const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+            const [ahtNegotiationMode, setAhtNegotiationMode] = useState(false); // Toggle for AHT negotiation calculations
             // Global defaults removed - all configuration at category-channel level
             const defaultAHT = null; // Deprecated - use category-channel config
             const setDefaultAHT = () => {}; // No-op setter for backward compatibility
@@ -1558,7 +1559,8 @@
                     categories,
                     useCases,
                     dateRange,
-                    financialSettings
+                    financialSettings,
+                    ahtNegotiationMode
                 };
                 
                 // Deep comparison to prevent unnecessary saves
@@ -1583,7 +1585,7 @@
                 }, 1000);
 
                 return () => clearTimeout(saveTimeout);
-            }, [categoryCosts, categories, useCases, dateRange, financialSettings]);
+            }, [categoryCosts, categories, useCases, dateRange, financialSettings, ahtNegotiationMode]);
 
             // Calculate cost based on category-channel hierarchy ONLY (no channel defaults)
             const getEffectiveCost = (useCase, channel) => {
@@ -1641,6 +1643,29 @@
                 
                 // No configuration found for this category-channel combination
                 return 0;
+            };
+            
+            // Get the actual cost configuration object for a use case
+            const getCostConfiguration = (useCase) => {
+                if (!categoryCosts[useCase.category]) return null;
+                
+                const categoryData = categoryCosts[useCase.category];
+                const channel = useCase.channel;
+                
+                // Check for special group first
+                if (useCase.specialGroup && 
+                    categoryData[channel] && 
+                    categoryData[channel]._specialGroups && 
+                    categoryData[channel]._specialGroups[useCase.specialGroup]) {
+                    return categoryData[channel]._specialGroups[useCase.specialGroup];
+                }
+                
+                // Then check category-channel
+                if (categoryData[channel]) {
+                    return categoryData[channel].costType ? categoryData[channel] : categoryData[channel]._default;
+                }
+                
+                return null;
             };
             
             // Get the cost source description for transparency
@@ -2239,6 +2264,27 @@
                 switch (metricConfig.type) {
                     case 'time_cost': {
                         // AHT Reduction calculation
+                        const costConfig = getCostConfiguration(useCase);
+                        
+                        // For per-contact costs, handle based on negotiation mode
+                        if (costConfig && costConfig.costType === 'perContact') {
+                            if (ahtNegotiationMode) {
+                                // Calculate what the new per-contact cost SHOULD be
+                                // This helps in contract negotiations
+                                const originalAHT = Math.max(0.01, parseFloat(getApplicableAHT(useCase)) || 10);
+                                const newAHT = Math.max(0.01, originalAHT - netImprovement);
+                                const reductionRatio = newAHT / originalAHT;
+                                const currentCost = getEffectiveCost(useCase, useCase.channel);
+                                const suggestedNewCost = currentCost * reductionRatio;
+                                const savingsPerContact = currentCost - suggestedNewCost;
+                                return volume * savingsPerContact;
+                            } else {
+                                // Standard mode: no savings for per-contact billing
+                                return 0;
+                            }
+                        }
+                        
+                        // For hourly costs, AHT reductions always save money
                         const effectiveCost = getEffectiveCost(useCase, useCase.channel);
                         const aht = Math.max(0.01, parseFloat(getApplicableAHT(useCase)) || 10);
                         const costPerMinute = effectiveCost / aht;
@@ -2325,6 +2371,19 @@
                 };
             };
 
+            // Check if there are AHT reductions with per-contact billing
+            const hasAHTWithPerContactBilling = () => {
+                return useCases.some(uc => {
+                    const costConfig = getCostConfiguration(uc);
+                    if (costConfig && costConfig.costType === 'perContact') {
+                        // Check if this use case has AHT reduction benefits
+                        const normalizedUC = ensureUseCaseHasBenefits(uc);
+                        return normalizedUC.benefits.some(b => b.metric === 'AHT Reduction (min)');
+                    }
+                    return false;
+                });
+            };
+            
             const calculateTotalSavings = () => {
                 let total = 0;
                 const filteredUseCases = getFilteredUseCases();
@@ -8393,6 +8452,30 @@
                                             {unsavedChanges.size > 0 && (
                                                 <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded text-sm">
                                                     {unsavedChanges.size} unsaved change{unsavedChanges.size > 1 ? 's' : ''}
+                                                </div>
+                                            )}
+                                            
+                                            {/* AHT Negotiation Mode Toggle */}
+                                            {hasAHTWithPerContactBilling() && (
+                                                <div className="flex items-center gap-2 ml-4">
+                                                    <label className="flex items-center gap-2 cursor-pointer" title="When enabled, calculates potential savings from AHT reductions even with per-contact billing (for contract negotiations)">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={ahtNegotiationMode}
+                                                            onChange={(e) => setAhtNegotiationMode(e.target.checked)}
+                                                            className="form-checkbox h-4 w-4 text-blue-600"
+                                                        />
+                                                        <span className="text-sm font-medium">AHT Negotiation Mode</span>
+                                                    </label>
+                                                    {ahtNegotiationMode ? (
+                                                        <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                                                            Calculating negotiation leverage
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                                                            ⚠️ AHT savings benefit vendor (per-contact billing)
+                                                        </span>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
