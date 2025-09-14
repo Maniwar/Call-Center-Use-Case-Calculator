@@ -1367,10 +1367,14 @@
             const [editingUseCase, setEditingUseCase] = useState(null);
             const [showEditModal, setShowEditModal] = useState(false)
             
-            // Category management
-            const [categories, setCategories] = useState(initialData.categories || [
-                'Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'
-            ]);
+            // Category management - ensure all categories from categoryCosts are included
+            const deriveCategories = () => {
+                const fromInitial = initialData.categories || ['Pre-Sales', 'Order Support', 'Technical Support', 'Customer Service'];
+                const fromCosts = Object.keys(initialData.categoryCosts || {});
+                const combined = new Set([...fromInitial, ...fromCosts]);
+                return Array.from(combined);
+            };
+            const [categories, setCategories] = useState(deriveCategories());
             const [showCategoryManager, setShowCategoryManager] = useState(false);
             const [newCategoryName, setNewCategoryName] = useState('');
             const [editingCategory, setEditingCategory] = useState(null);
@@ -6662,10 +6666,6 @@
                             const importSummary = [];
                             
                             // Import core data
-                            if (importedData.categories) {
-                                setCategories(importedData.categories);
-                                importSummary.push(`${importedData.categories.length} categories`);
-                            }
                             if (importedData.channelCosts) {
                                 setChannelCosts(importedData.channelCosts);
                                 importSummary.push(`${Object.keys(importedData.channelCosts).length} channel costs`);
@@ -6673,6 +6673,16 @@
                             if (importedData.categoryCosts) {
                                 setCategoryCosts(importedData.categoryCosts);
                                 importSummary.push(`${Object.keys(importedData.categoryCosts).length} category configurations`);
+                                
+                                // Sync categories from both sources
+                                const importedCategories = importedData.categories || [];
+                                const categoriesFromCosts = Object.keys(importedData.categoryCosts);
+                                const allCategories = Array.from(new Set([...importedCategories, ...categoriesFromCosts]));
+                                setCategories(allCategories);
+                                importSummary.push(`${allCategories.length} total categories`);
+                            } else if (importedData.categories) {
+                                setCategories(importedData.categories);
+                                importSummary.push(`${importedData.categories.length} categories`);
                             }
                             if (importedData.useCases) {
                                 // Count total benefits in imported use cases
