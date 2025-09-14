@@ -3811,7 +3811,11 @@
                         // Category Implementation Costs Chart
                         if (chartRefs.categoryImplementation.current) {
                             const ctx = chartRefs.categoryImplementation.current.getContext('2d');
-                            const categoryData = categories.map(category => {
+                            
+                            // Only include categories that have filtered use cases
+                            const activeCategories = [...new Set(getFilteredUseCases().map(uc => uc.category))];
+                            
+                            const categoryData = activeCategories.map(category => {
                                 const catSettings = financialSettings.categoryBilling?.[category] || {};
                                 return catSettings.implementationCost || 0;
                             });
@@ -3819,7 +3823,7 @@
                             chartInstances.current.categoryImplementation = new Chart(ctx, {
                                 type: 'doughnut',
                                 data: {
-                                    labels: categories,
+                                    labels: activeCategories,
                                     datasets: [{
                                         data: categoryData,
                                         backgroundColor: [
@@ -3865,8 +3869,11 @@
                         if (chartRefs.categoryCostTimeline.current) {
                             const ctx = chartRefs.categoryCostTimeline.current.getContext('2d');
                             
-                            // Prepare datasets for each category
-                            const datasets = categories.map((category, index) => {
+                            // Only include categories that have filtered use cases
+                            const activeCategories = [...new Set(getFilteredUseCases().map(uc => uc.category))];
+                            
+                            // Prepare datasets for each active category
+                            const datasets = activeCategories.map((category, index) => {
                                 const catSettings = financialSettings.categoryBilling?.[category] || {};
                                 const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
                                 const color = colors[index % colors.length];
