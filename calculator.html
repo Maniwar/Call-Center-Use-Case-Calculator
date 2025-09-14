@@ -2612,8 +2612,11 @@
                     const implementationByMonth = {};
                     const ongoingByMonth = {};
                     
+                    // Only include costs for categories that have filtered use cases
+                    const activeCategories = [...new Set(filteredUseCases.map(uc => uc.category))];
+                    
                     // Calculate category-specific costs
-                    categories.forEach(category => {
+                    activeCategories.forEach(category => {
                         const catSettings = financialSettings.categoryBilling?.[category];
                         if (catSettings) {
                             const implMonth = catSettings.implementationMonth || 0;
@@ -4897,7 +4900,9 @@
                     totalBenefits += monthlyBenefit;
                     
                     if (settings.useCategoryBilling) {
-                        categories.forEach(category => {
+                        // Only include costs for categories that have filtered use cases
+                        const activeCategories = [...new Set(filteredUseCases.map(uc => uc.category))];
+                        activeCategories.forEach(category => {
                             const catSettings = settings.categoryBilling?.[category];
                             if (catSettings) {
                                 if (index === catSettings.implementationMonth) {
@@ -4944,7 +4949,9 @@
                 if (settings.useCategoryBilling) {
                     csv += '4. CATEGORY IMPLEMENTATION TIMELINE (For Stacked Area Chart)\n';
                     csv += `Month${TAB}`;
-                    categories.forEach(cat => {
+                    // Only include categories that have filtered use cases
+                    const activeCategories = [...new Set(filteredUseCases.map(uc => uc.category))];
+                    activeCategories.forEach(cat => {
                         csv += `${cat}${TAB}`;
                     });
                     csv += '\n';
@@ -4952,7 +4959,7 @@
                     // First 12 months of category costs
                     for (let month = 0; month < 12; month++) {
                         csv += `Month ${month}${TAB}`;
-                        categories.forEach(category => {
+                        activeCategories.forEach(category => {
                             const catSettings = settings.categoryBilling?.[category] || {};
                             let cost = 0;
                             
@@ -10641,7 +10648,9 @@
                                                         
                                                         // Calculate costs based on billing mode
                                                         if (financialSettings.useCategoryBilling) {
-                                                            categories.forEach(category => {
+                                                            // Only include costs for categories that have filtered use cases
+                                                            const activeCategories = [...new Set(filteredUseCases.map(uc => uc.category))];
+                                                            activeCategories.forEach(category => {
                                                                 const catSettings = financialSettings.categoryBilling?.[category];
                                                                 if (catSettings) {
                                                                     if (index === catSettings.implementationMonth) {
@@ -10714,7 +10723,9 @@
                                                             -${(() => {
                                                                 let total = 0;
                                                                 if (financialSettings.useCategoryBilling) {
-                                                                    categories.forEach(category => {
+                                                                    // Only include costs for categories that have filtered use cases
+                                                                    const activeCategories = [...new Set(getFilteredUseCases().map(uc => uc.category))];
+                                                                    activeCategories.forEach(category => {
                                                                         const catSettings = financialSettings.categoryBilling?.[category];
                                                                         if (catSettings) {
                                                                             total += catSettings.implementationCost || 0;
@@ -10732,7 +10743,9 @@
                                                                 const filteredMonths = getFilteredMonths();
                                                                 
                                                                 if (financialSettings.useCategoryBilling) {
-                                                                    categories.forEach(category => {
+                                                                    // Only include costs for categories that have filtered use cases
+                                                                    const activeCategories = [...new Set(getFilteredUseCases().map(uc => uc.category))];
+                                                                    activeCategories.forEach(category => {
                                                                         const catSettings = financialSettings.categoryBilling?.[category];
                                                                         if (catSettings) {
                                                                             const cycleMonths = getBillingCycleMonths(catSettings.billingCycle, catSettings.customMonths);
@@ -10791,7 +10804,9 @@
                                             totalBenefits += monthlyBenefit;
                                             
                                             if (financialSettings.useCategoryBilling) {
-                                                categories.forEach(category => {
+                                                // Only include costs for categories that have filtered use cases
+                                                const activeCategories = [...new Set(filteredUseCases.map(uc => uc.category))];
+                                                activeCategories.forEach(category => {
                                                     const catSettings = financialSettings.categoryBilling?.[category];
                                                     if (catSettings) {
                                                         if (index === catSettings.implementationMonth) {
