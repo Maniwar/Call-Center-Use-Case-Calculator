@@ -4704,17 +4704,10 @@
                 setRedoStack([]);
                 
                 const updatedUseCases = deepCopyUseCases(useCases);
-                const useCase = updatedUseCases[startUseCaseIndex];
-                
-                if (!useCase) return;
-                
-                const normalizedUC = ensureUseCaseHasBenefits(useCase);
                 
                 // Determine which field was focused by checking the active element
                 const activeElement = document.activeElement;
                 const fieldKey = activeElement?.getAttribute('data-field-key');
-                const isVolumeField = fieldKey && fieldKey.startsWith('volume');
-                const isImprovementField = fieldKey && fieldKey.startsWith('improvement');
                 
                 // Check if this is a single cell paste (no tabs or newlines)
                 const isSingleCell = rows.length === 1 && !rows[0].includes('\t');
@@ -4724,23 +4717,61 @@
                     const value = parseFloat(rows[0]) || 0;
                     const monthId = months[startMonthIndex].id;
                     
-                    if (!updatedUseCases[startUseCaseIndex].data[monthId]) {
-                        updatedUseCases[startUseCaseIndex].data[monthId] = {};
-                    }
-                    
-                    // Use the field key from the active element
-                    if (fieldKey) {
-                        updatedUseCases[startUseCaseIndex].data[monthId][fieldKey] = value;
+                    if (startUseCaseIndex < updatedUseCases.length) {
+                        if (!updatedUseCases[startUseCaseIndex].data[monthId]) {
+                            updatedUseCases[startUseCaseIndex].data[monthId] = {};
+                        }
+                        
+                        // Use the field key from the active element
+                        if (fieldKey) {
+                            updatedUseCases[startUseCaseIndex].data[monthId][fieldKey] = value;
+                        }
                     }
                 } else {
-                    // Multi-cell paste
-                    const expectedFields = 1 + normalizedUC.benefits.length; // volume + benefits
-                    const isPastingFields = rows.length === expectedFields;
+                    // Multi-cell/multi-row paste
+                    // Iterate through all visible data rows and paste accordingly
+                    let currentRowIndex = 0;
                     
-                    if (isPastingFields) {
-                        // Pasting volume and benefits for a single use case across months
-                        rows.forEach((row, rowIndex) => {
-                            const cells = row.split('\t').map(cell => cell.trim());
+                    // Build a flat list of all visible fields (across all use cases and their benefits)
+                    const allFields = [];
+                    updatedUseCases.forEach((uc, ucIndex) => {
+                        const normalizedUC = ensureUseCaseHasBenefits(uc);
+                        
+                        // Add volume field
+                        allFields.push({
+                            useCaseIndex: ucIndex,
+                            fieldKey: 'volume',
+                            benefitIndex: -1
+                        });
+                        
+                        // Add benefit fields
+                        normalizedUC.benefits.forEach((benefit, benefitIndex) => {
+                            const fieldKey = normalizedUC.benefits.length === 1 
+                                ? `improvement_${benefit.metric}`
+                                : `improvement_${benefitIndex}_${benefit.metric}`;
+                            allFields.push({
+                                useCaseIndex: ucIndex,
+                                fieldKey: fieldKey,
+                                benefitIndex: benefitIndex
+                            });
+                        });
+                    });
+                    
+                    // Starting from the clicked position, map rows to fields
+                    const startFieldIndex = allFields.findIndex(f => 
+                        f.useCaseIndex === startUseCaseIndex && 
+                        (fieldKey ? f.fieldKey === fieldKey : f.fieldKey === 'volume')
+                    );
+                    
+                    if (startFieldIndex === -1) return;
+                    
+                    // Paste data starting from the clicked field
+                    rows.forEach((row, rowIndex) => {
+                        const cells = row.split('\t').map(cell => cell.trim());
+                        const fieldIndex = startFieldIndex + rowIndex;
+                        
+                        if (fieldIndex < allFields.length) {
+                            const field = allFields[fieldIndex];
                             
                             cells.forEach((cell, cellIndex) => {
                                 const monthIndex = startMonthIndex + cellIndex;
@@ -4748,55 +4779,17 @@
                                 if (monthIndex < months.length && cell) {
                                     const monthId = months[monthIndex].id;
                                     const value = parseFloat(cell) || 0;
+                                    const ucIndex = field.useCaseIndex;
                                     
-                                    if (!updatedUseCases[startUseCaseIndex].data[monthId]) {
-                                        updatedUseCases[startUseCaseIndex].data[monthId] = {};
+                                    if (!updatedUseCases[ucIndex].data[monthId]) {
+                                        updatedUseCases[ucIndex].data[monthId] = {};
                                     }
                                     
-                                    if (rowIndex === 0) {
-                                        // First row is volume
-                                        updatedUseCases[startUseCaseIndex].data[monthId].volume = value;
-                                    } else {
-                                        // Subsequent rows are benefits
-                                        const benefitIndex = rowIndex - 1;
-                                        if (benefitIndex < normalizedUC.benefits.length) {
-                                            const benefit = normalizedUC.benefits[benefitIndex];
-                                            const fieldKey = normalizedUC.benefits.length === 1 
-                                                ? `improvement_${benefit.metric}`
-                                                : `improvement_${benefitIndex}_${benefit.metric}`;
-                                            updatedUseCases[startUseCaseIndex].data[monthId][fieldKey] = value;
-                                        }
-                                    }
+                                    updatedUseCases[ucIndex].data[monthId][field.fieldKey] = value;
                                 }
                             });
-                        });
-                    } else {
-                        // Original behavior: each row is a different use case
-                        rows.forEach((row, rowIndex) => {
-                            const cells = row.split('\t').map(cell => cell.trim());
-                            const useCaseIndex = startUseCaseIndex + rowIndex;
-                            
-                            if (useCaseIndex < updatedUseCases.length) {
-                                const currentUC = ensureUseCaseHasBenefits(updatedUseCases[useCaseIndex]);
-                                
-                                cells.forEach((cell, cellIndex) => {
-                                    const monthIndex = startMonthIndex + cellIndex;
-                                    
-                                    if (monthIndex < months.length && cell) {
-                                        const monthId = months[monthIndex].id;
-                                        const value = parseFloat(cell) || 0;
-                                        
-                                        if (!updatedUseCases[useCaseIndex].data[monthId]) {
-                                            updatedUseCases[useCaseIndex].data[monthId] = {};
-                                        }
-                                        
-                                        // For single row, assume it's volume data
-                                        updatedUseCases[useCaseIndex].data[monthId].volume = value;
-                                    }
-                                });
-                            }
-                        });
-                    }
+                        }
+                    });
                 }
                 
                 setUseCases(updatedUseCases);
