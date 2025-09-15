@@ -4737,22 +4737,28 @@
                     updatedUseCases.forEach((uc, ucIndex) => {
                         const normalizedUC = ensureUseCaseHasBenefits(uc);
                         
-                        // Add volume field
-                        allFields.push({
-                            useCaseIndex: ucIndex,
-                            fieldKey: 'volume',
-                            benefitIndex: -1
-                        });
-                        
-                        // Add benefit fields
+                        // Add benefit-specific volume and improvement fields
                         normalizedUC.benefits.forEach((benefit, benefitIndex) => {
-                            const fieldKey = normalizedUC.benefits.length === 1 
+                            // Volume field for this benefit
+                            const volumeFieldKey = normalizedUC.benefits.length === 1 
+                                ? `volume_${benefit.metric}`
+                                : `volume_${benefitIndex}_${benefit.metric}`;
+                            allFields.push({
+                                useCaseIndex: ucIndex,
+                                fieldKey: volumeFieldKey,
+                                benefitIndex: benefitIndex,
+                                isVolume: true
+                            });
+                            
+                            // Improvement field for this benefit
+                            const improvementFieldKey = normalizedUC.benefits.length === 1 
                                 ? `improvement_${benefit.metric}`
                                 : `improvement_${benefitIndex}_${benefit.metric}`;
                             allFields.push({
                                 useCaseIndex: ucIndex,
-                                fieldKey: fieldKey,
-                                benefitIndex: benefitIndex
+                                fieldKey: improvementFieldKey,
+                                benefitIndex: benefitIndex,
+                                isVolume: false
                             });
                         });
                     });
@@ -4760,7 +4766,7 @@
                     // Starting from the clicked position, map rows to fields
                     const startFieldIndex = allFields.findIndex(f => 
                         f.useCaseIndex === startUseCaseIndex && 
-                        (fieldKey ? f.fieldKey === fieldKey : f.fieldKey === 'volume')
+                        (fieldKey ? f.fieldKey === fieldKey : f.isVolume === true)
                     );
                     
                     if (startFieldIndex === -1) return;
