@@ -1172,20 +1172,20 @@
             },
             "Transfer Rate Reduction (%)": {
                 baseline: {
-                    description: "Current transfer rate between agents/departments",
-                    typical: "25-35%",
-                    example: "If 30% of calls are transferred, enter 30"
+                    description: "Current % of unnecessary transfers already being prevented by existing routing or tools",
+                    typical: "0-10%",
+                    example: "If existing routing already prevents 5% of unnecessary transfers, enter 5. Enter 0 if no transfer reduction exists today"
                 },
                 volume: {
-                    description: "Number of contacts that currently get transferred",
-                    calculation: "Total contacts × current transfer rate",
-                    example: "10,000 calls × 30% transfer rate = 3,000"
+                    description: "Number of contacts that currently get unnecessarily transferred",
+                    calculation: "Total contacts × current unnecessary transfer rate",
+                    example: "10,000 calls × 30% unnecessary transfer rate = 3,000 transferred contacts"
                 },
                 improvement: {
-                    description: "Expected reduction in transfer rate",
+                    description: "Expected % of these transferred contacts that AI will route correctly (preventing the transfer)",
                     typical: "30-50%",
-                    example: "Reduce transfers by 40%, enter 40",
-                    formula: "Volume × (Reduction% - Baseline%) × Cost per Contact = $ Saved"
+                    example: "If AI smart routing will prevent 40% of unnecessary transfers, enter 40",
+                    formula: "Transferred Volume × (AI Prevention% - Existing Prevention%) × Cost per Contact = $ Saved"
                 },
                 industryBenchmarks: {
                     "Smart Routing": "35-45%",
@@ -1223,9 +1223,9 @@
             },
             "CSAT Improvement (%)": {
                 baseline: {
-                    description: "Current customer satisfaction score",
+                    description: "Current customer satisfaction score (percentage)",
                     typical: "70-80%",
-                    example: "If current CSAT is 75%, enter 0 as baseline since we measure improvement"
+                    example: "If current CSAT is 75%, enter 75"
                 },
                 volume: {
                     description: "Number of surveyed interactions (not all interactions)",
@@ -1234,49 +1234,49 @@
                     warning: "⚠️ Only count interactions with CSAT surveys"
                 },
                 improvement: {
-                    description: "Expected CSAT percentage point increase",
-                    typical: "10-20%",
-                    example: "If CSAT improves from 75% to 85%, enter 10",
-                    formula: "Surveyed Volume × (% Improvement / 100) × $ Value per Point",
-                    dollarConversion: "💡 How to calculate $ value per CSAT point: (1) Estimate revenue at risk from dissatisfied customers, (2) Divide by total survey responses, (3) Multiply by retention improvement rate (typically 0.3-1%), (4) Example: $100K at risk / 1000 surveys × 0.5% = $25/point. Configure in Settings → Category Metric Values."
+                    description: "Target CSAT score with AI assistance (percentage)",
+                    typical: "80-90%",
+                    example: "If AI will improve CSAT from 75% to 85%, enter 85",
+                    formula: "Net Improvement = Target CSAT - Current CSAT (e.g., 85 - 75 = 10 percentage points)",
+                    dollarConversion: "💡 Configure CSAT value calculation in Settings → Categories → Metric Values. Set your annual customer base, average customer value, and retention impact rate per CSAT point."
                 },
                 industryBenchmarks: {
-                    "Chatbot Assistance": "8-15%",
-                    "Agent Augmentation": "12-18%",
-                    "Proactive Support": "15-20%",
-                    "Sentiment Analysis": "10-15%"
+                    "Chatbot Assistance": "Target: 83-90%",
+                    "Agent Augmentation": "Target: 85-93%",
+                    "Proactive Support": "Target: 88-95%",
+                    "Sentiment Analysis": "Target: 85-90%"
                 }
             },
             "FCR Improvement (%)": {
                 baseline: {
-                    description: "Current first call resolution rate",
-                    typical: "60-70%",
-                    example: "If current FCR is 65%, enter 0 as baseline since we measure improvement"
+                    description: "Current first call resolution rate, or 0 if entering improvement directly",
+                    typical: "60-70% (or 0)",
+                    example: "If current FCR is 65%, enter 65 — OR enter 0 and put just the improvement amount in the Impact field"
                 },
                 volume: {
                     description: "Total contacts that could require follow-ups",
                     calculation: "All contacts needing resolution (not just failures)",
                     example: "6,000 support tickets per month",
-                    note: "✅ FCR saves money by avoiding repeat contacts"
+                    note: "✅ FCR saves money by avoiding repeat contacts. Formula includes a 0.3 repeat-call factor"
                 },
                 improvement: {
-                    description: "Expected FCR percentage point increase",
-                    typical: "15-25%",
-                    example: "If FCR improves from 65% to 80%, enter 15",
-                    formula: "Volume × (% Improvement / 100) × Cost per Contact (avoided repeats)"
+                    description: "Target FCR rate (if baseline is current rate) OR improvement amount (if baseline is 0)",
+                    typical: "15-25% improvement",
+                    example: "Baseline=65, Impact=80 → 15% net improvement. OR Baseline=0, Impact=15 → same 15% net improvement",
+                    formula: "Volume × (Impact - Baseline) / 100 × Cost per Contact × 0.3 repeat-call factor = $ Saved"
                 },
                 industryBenchmarks: {
-                    "Knowledge Base AI": "15-20%",
-                    "Agent Assist": "20-25%",
-                    "Predictive Analytics": "10-15%",
-                    "Smart Routing": "12-18%"
+                    "Knowledge Base AI": "15-20% improvement",
+                    "Agent Assist": "20-25% improvement",
+                    "Predictive Analytics": "10-15% improvement",
+                    "Smart Routing": "12-18% improvement"
                 }
             },
             "Conversion Rate (%)": {
                 baseline: {
-                    description: "Current sales conversion rate",
-                    typical: "2-5%",
-                    example: "If current conversion is 3%, enter 0 as baseline since we measure improvement"
+                    description: "Current sales conversion rate, or 0 if entering improvement directly",
+                    typical: "2-5% (or 0)",
+                    example: "If current conversion is 3%, enter 3 — OR enter 0 and put just the improvement amount in the Impact field"
                 },
                 volume: {
                     description: "Number of sales opportunities",
@@ -1285,24 +1285,24 @@
                     note: "💰 This represents potential sales opportunities, not all contacts"
                 },
                 improvement: {
-                    description: "Expected conversion rate percentage point increase",
-                    typical: "0.5-2%",
-                    example: "If conversion improves from 3% to 4%, enter 1",
-                    formula: "Opportunities × (New Rate% - Baseline%) × Average Deal Value = $ Revenue Generated",
+                    description: "Target conversion rate (if baseline is current rate) OR improvement amount (if baseline is 0)",
+                    typical: "0.5-2% improvement",
+                    example: "Baseline=3, Impact=4 → 1% net improvement. OR Baseline=0, Impact=1 → same 1% net improvement",
+                    formula: "Opportunities × (Impact - Baseline) / 100 × Average Deal Value = $ Revenue Generated",
                     dollarConversion: "💡 How to calculate Average Deal Value: (1) Sum total revenue from recent period (e.g., last quarter), (2) Divide by number of closed deals, (3) For subscription: use Customer Lifetime Value, (4) Industry avg: B2C $50-500, B2B $1,000-10,000. Configure in Settings → Category Metric Values."
                 },
                 industryBenchmarks: {
-                    "Lead Scoring": "0.8-1.5%",
-                    "Personalized Recommendations": "1-2%",
-                    "Predictive Analytics": "0.5-1.2%",
-                    "Chatbot Qualification": "0.6-1%"
+                    "Lead Scoring": "0.8-1.5% improvement",
+                    "Personalized Recommendations": "1-2% improvement",
+                    "Predictive Analytics": "0.5-1.2% improvement",
+                    "Chatbot Qualification": "0.6-1% improvement"
                 }
             },
             "Agent Retention (%)": {
                 baseline: {
-                    description: "Current agent turnover rate",
-                    typical: "30-40% annually",
-                    example: "Enter 0 as baseline since we measure improvement in retention"
+                    description: "Current agent retention improvement from existing tools, or 0 if entering improvement directly",
+                    typical: "0-5% (or 0)",
+                    example: "Enter 0 if no existing retention improvement tools. OR enter current retention improvement % from existing solutions"
                 },
                 volume: {
                     description: "Number of agents affected by AI tools",
@@ -1311,24 +1311,24 @@
                     warning: "⚠️ Use agent count, not contact volume"
                 },
                 improvement: {
-                    description: "Expected reduction in agent turnover",
+                    description: "Expected percentage point reduction in agent turnover",
                     typical: "10-20%",
-                    example: "If turnover reduces from 35% to 25%, enter 10",
-                    formula: "Agent Count × (Retention Improvement%) × Replacement Cost = $ Saved on Hiring/Training",
+                    example: "If turnover reduces by 10 percentage points (e.g., 35% → 25%), enter 10",
+                    formula: "Agent Count × (Impact - Baseline) / 100 × Agent Replacement Cost = $ Saved on Hiring/Training",
                     dollarConversion: "💡 How to calculate Agent Replacement Cost: (1) Recruiting costs (job boards, recruiter fees), (2) Training costs (trainer time × hourly rate × training hours), (3) Lost productivity (3-6 months ramp time × productivity gap), (4) Industry avg: $3,000-8,000 per agent. Configure in Settings → Category Metric Values."
                 },
                 industryBenchmarks: {
-                    "AI Assistance Tools": "10-15%",
-                    "Reduced Stress": "15-20%",
-                    "Career Development": "8-12%",
-                    "Job Satisfaction": "12-18%"
+                    "AI Assistance Tools": "10-15% improvement",
+                    "Reduced Stress": "15-20% improvement",
+                    "Career Development": "8-12% improvement",
+                    "Job Satisfaction": "12-18% improvement"
                 }
             },
             "Compliance Rate (%)": {
                 baseline: {
-                    description: "Current compliance rate for regulations",
-                    typical: "85-95%",
-                    example: "If current compliance is 90%, enter 0 as baseline since we measure improvement"
+                    description: "Current compliance improvement from existing tools, or 0 if entering improvement directly",
+                    typical: "0-5% (or 0)",
+                    example: "Enter 0 if no existing compliance improvement tools. OR enter current improvement % from existing solutions"
                 },
                 volume: {
                     description: "Number of interactions requiring compliance",
@@ -1339,15 +1339,15 @@
                 improvement: {
                     description: "Expected compliance rate percentage point increase",
                     typical: "3-8%",
-                    example: "If compliance improves from 90% to 95%, enter 5",
-                    formula: "Regulated Volume × (Compliance Improvement%) × Cost per Violation = $ Fines/Penalties Avoided",
+                    example: "If compliance improves by 5 percentage points (e.g., 90% → 95%), enter 5",
+                    formula: "Regulated Volume × (Impact - Baseline) / 100 × Cost per Violation = $ Fines/Penalties Avoided",
                     dollarConversion: "💡 How to calculate Cost per Violation: (1) Review regulatory fine schedules (TCPA: $500-1,500, GDPR: up to 4% revenue, HIPAA: $100-50,000), (2) Add legal fees and settlement costs, (3) Include reputation damage (lost customers × CLV), (4) Industry avg: $1,000-10,000 per violation. Configure in Settings → Category Metric Values."
                 },
                 industryBenchmarks: {
-                    "Automated Monitoring": "5-8%",
-                    "Real-time Alerts": "4-6%",
-                    "Quality Assurance AI": "3-5%",
-                    "Script Compliance": "6-8%"
+                    "Automated Monitoring": "5-8% improvement",
+                    "Real-time Alerts": "4-6% improvement",
+                    "Quality Assurance AI": "3-5% improvement",
+                    "Script Compliance": "6-8% improvement"
                 }
             }
         };
@@ -1509,13 +1509,14 @@
                 const baseline = benefit.baselineValue || 0;
 
                 // Calculate net improvement based on metric type
+                // IMPORTANT: This must mirror the centralized calculateNetImprovement() logic in the component.
+                // inverseMetric=true (AHT): baseline - improvement (current - target)
+                // inverseMetric=false (all others): improvement - baseline (target - current)
                 const metricConfig = METRIC_CONFIG ? METRIC_CONFIG[benefit.metric] : null;
                 let netImprovement;
                 if (metricConfig && metricConfig.inverseMetric) {
-                    // For AHT: baseline - improvement (current - target)
                     netImprovement = Math.max(0, baseline - improvement);
                 } else {
-                    // For normal metrics: improvement - baseline
                     netImprovement = Math.max(0, improvement - baseline);
                 }
 
@@ -1567,6 +1568,7 @@
                             }
                             
                             // Generate Net Improvement formula based on metric type
+                            // IMPORTANT: Must mirror calculateNetImprovement() direction logic
                             const metricConfig = options.METRIC_CONFIG ? options.METRIC_CONFIG[benefit.metric] : null;
                             let netImprovementFormula;
                             if (metricConfig && metricConfig.inverseMetric) {
@@ -2296,11 +2298,11 @@
                                 name: 'Test: AHT Reduction (Chat)',
                                 channel: 'chat',
                                 specialGroup: 'Tier 1',
-                                benefits: [{metric: 'AHT Reduction (min)', baselineValue: 2}],
+                                benefits: [{metric: 'AHT Reduction (min)', baselineValue: 8}],
                                 data: {
                                     'month-1': {
                                         'volume_AHT Reduction (min)': 500,  // Contacts
-                                        'improvement_AHT Reduction (min)': 5  // 5 minutes saved
+                                        'improvement_AHT Reduction (min)': 5  // Target AHT of 5 min (3 min saved from baseline of 8)
                                     }
                                 }
                             },
@@ -2314,7 +2316,7 @@
                                 data: {
                                     'month-1': {
                                         'volume_FCR Improvement (%)': 800,  // Contacts
-                                        'improvement_FCR Improvement (%)': 85  // 85% FCR
+                                        'improvement_FCR Improvement (%)': 85  // Target FCR of 85% (15% net improvement from baseline of 70%)
                                     }
                                 }
                             },
@@ -2325,11 +2327,11 @@
                                 name: 'Test: NPS Improvement',
                                 channel: 'phone',
                                 specialGroup: '',
-                                benefits: [{metric: 'NPS Improvement (points)', baselineValue: 0}],
+                                benefits: [{metric: 'NPS Improvement (points)', baselineValue: 30}],
                                 data: {
                                     'month-1': {
                                         'volume_NPS Improvement (points)': 200,  // Surveys
-                                        'improvement_NPS Improvement (points)': 5  // 5 point improvement
+                                        'improvement_NPS Improvement (points)': 40  // Target NPS of 40 (10 point improvement from baseline of 30)
                                     }
                                 }
                             },
@@ -2353,11 +2355,11 @@
                                 name: 'Test: Agent Retention',
                                 channel: 'phone',
                                 specialGroup: 'Offshore',
-                                benefits: [{metric: 'Agent Retention (%)', baselineValue: 80}],
+                                benefits: [{metric: 'Agent Retention (%)', baselineValue: 0}],
                                 data: {
                                     'month-1': {
                                         'volume_Agent Retention (%)': 50,  // Agents
-                                        'improvement_Agent Retention (%)': 90  // 90% retention
+                                        'improvement_Agent Retention (%)': 10  // 10% reduction in turnover (e.g., 35% → 25%)
                                     }
                                 }
                             },
@@ -2979,12 +2981,24 @@
             };
 
             // Centralized metric configuration - single source of truth for all calculations
+            //
+            // BENEFIT DIRECTION RULES:
+            // - All metrics: higher "improvement" value = better, EXCEPT inverseMetric=true
+            // - inverseMetric=true (currently only AHT): lower "improvement" value = better
+            //   Net improvement = baseline - improvement (e.g., 12min - 10min = 2min saved)
+            // - inverseMetric=false (all others): higher "improvement" value = better
+            //   Net improvement = improvement - baseline (e.g., 70% - 5% = 65% net gain)
+            // - Net improvement is always clamped to >= 0 (no negative benefits)
+            // - The centralized calculateNetImprovement() function enforces these rules
+            //
             // To add a new metric:
             // 1. Add entry to METRIC_CONFIG with unique key matching metric name
             // 2. Set type: 'percentage_cost', 'time_cost', 'points_value', 'percentage_value', or create new type
             // 3. Define formula (documentation) and excelFormula (function returning Excel formula string)
             // 4. For value-based metrics, add metricKey pointing to metricValues configuration
             // 5. Update calculateBenefitSavings switch statement if new type is created
+            // 6. If the metric has inverse direction (lower = better), set inverseMetric: true
+            // 7. Update InputGuidance with clear baseline/improvement descriptions
             const METRIC_CONFIG = {
                 'Deflection Rate (%)': {
                     type: 'percentage_cost',
@@ -3021,7 +3035,7 @@
                     valueType: 'savings',  // Reduces duplicate handling costs
                     formula: 'volume * (netImprovement / 100) * cost',
                     excelFormula: (row) => `=G${row}*(J${row}/100)*K${row}`,
-                    description: 'Reduction in transfer rate'
+                    description: 'Percentage of transferred contacts prevented (higher = more transfers prevented = better)'
                 },
                 'NPS Improvement (points)': {
                     type: 'points_value',
@@ -3345,7 +3359,9 @@
                     : `improvement_${actualIndex}_${benefit.metric}`;
                 const improvement = parseFloat(monthData[fieldKey]) || 0;
                 const baseline = parseFloat(benefit.baselineValue) || 0;
-                const netImprovement = Math.max(0, improvement - baseline);
+
+                // Use centralized direction logic for consistency with monetary calculations
+                const netImprovement = calculateNetImprovement(benefit.metric, baseline, improvement);
 
                 return {
                     metric: benefit.metric,
@@ -3628,6 +3644,21 @@
             };
             
 
+            // Centralized net improvement calculation - ensures consistent direction logic across all code paths
+            // IMPORTANT: This is the SINGLE SOURCE OF TRUTH for benefit direction.
+            // - inverseMetric=true (AHT): baseline is current value, improvement is target (lower) value
+            //   → net = baseline - improvement (e.g., 12min current - 10min target = 2min saved)
+            // - inverseMetric=false (all others): baseline is starting point, improvement is target (higher) value
+            //   → net = improvement - baseline (e.g., 70% target - 5% existing = 65% net gain)
+            // Result is always clamped to >= 0 (no negative benefits)
+            const calculateNetImprovement = (metric, baseline, improvement) => {
+                const metricConfig = METRIC_CONFIG[metric];
+                if (metricConfig && metricConfig.inverseMetric) {
+                    return Math.max(0, baseline - improvement);
+                }
+                return Math.max(0, improvement - baseline);
+            };
+
             // Calculate savings for a single benefit using centralized metric config
             const calculateBenefitSavings = (useCase, benefit, monthData, benefitIndex = 0) => {
                 const normalizedUC = ensureUseCaseHasBenefits(useCase);
@@ -3656,18 +3687,8 @@
                 const improvement = parseFloat(monthData[fieldKey]) || 0;
                 const baseline = parseFloat(benefit.baselineValue) || 0;
 
-                // Calculate net improvement
-                // For inverse metrics (like AHT where lower = better), use baseline - improvement
-                // For normal metrics (like Deflection where higher = better), use improvement - baseline
-                let netImprovement;
-                if (metricConfig.inverseMetric) {
-                    // AHT: baseline is current AHT, improvement is target AHT
-                    // Reduction = current - target (e.g., 12 min - 10 min = 2 min saved)
-                    netImprovement = Math.max(0, baseline - improvement);
-                } else {
-                    // Normal metrics: improvement - baseline
-                    netImprovement = Math.max(0, improvement - baseline);
-                }
+                // Calculate net improvement using centralized direction logic
+                const netImprovement = calculateNetImprovement(benefit.metric, baseline, improvement);
                 
                 // Calculate based on metric type from configuration
                 switch (metricConfig.type) {
@@ -4177,26 +4198,31 @@
                 const filteredMonths = getFilteredMonths();
                 const metricTypes = getAvailableMetricTypes();
                 const totals = {};
-                
+
                 // Initialize totals
                 metricTypes.forEach(type => {
                     totals[type] = { total: 0, count: 0 };
                 });
-                
+
                 filteredUseCases.forEach(uc => {
                     const normalizedUC = ensureUseCaseHasBenefits(uc);
-                    
-                    normalizedUC.benefits.forEach((benefit, benefitIndex) => {
+                    // Use getFilteredBenefits to respect metric filter (consistent with other calculations)
+                    const filteredBenefits = getFilteredBenefits(uc);
+
+                    filteredBenefits.forEach((benefit, filteredIndex) => {
                         const metricType = getMetricTypeForMetric(benefit.metric);
                         totals[metricType].count++;
-                        
+                        // Find original index for correct data field access
+                        const originalIndex = normalizedUC.benefits.findIndex(b => b.metric === benefit.metric);
+                        const actualIndex = originalIndex >= 0 ? originalIndex : filteredIndex;
+
                         filteredMonths.forEach(month => {
                             const monthData = normalizedUC.data[month.id] || {};
-                            totals[metricType].total += calculateBenefitSavings(normalizedUC, benefit, monthData, benefitIndex);
+                            totals[metricType].total += calculateBenefitSavings(normalizedUC, benefit, monthData, actualIndex);
                         });
                     });
                 });
-                
+
                 return totals;
             };
 
@@ -5542,23 +5568,26 @@
                     const filteredUseCases = getFilteredUseCases();
                     
                     // Calculate using the exact same logic as the Excel export
+                    // Only include costs for categories that have filtered use cases (consistent with generateCashFlows)
+                    const activeCategories = [...new Set(filteredUseCases.map(uc => uc.category))];
+
                     filteredMonths.forEach((month, index) => {
                         let monthlyBenefit = 0;
                         filteredUseCases.forEach(uc => {
                             monthlyBenefit += calculateSavings(uc, month.id);
                         });
                         totalBenefits += monthlyBenefit;
-                        
+
                         if (financialSettings.useCategoryBilling) {
-                            categories.forEach(category => {
+                            activeCategories.forEach(category => {
                                 const catSettings = financialSettings.categoryBilling?.[category];
                                 if (catSettings) {
-                                    if (index === catSettings.implementationMonth) {
+                                    if (index === (catSettings.implementationMonth || 0)) {
                                         totalImplementationCost += catSettings.implementationCost || 0;
                                     }
                                     const cycleMonths = getBillingCycleMonths(catSettings.billingCycle, catSettings.customMonths);
-                                    if (index > catSettings.implementationMonth && 
-                                        ((index - catSettings.implementationMonth - 1) % cycleMonths === 0)) {
+                                    if (index > (catSettings.implementationMonth || 0) &&
+                                        ((index - (catSettings.implementationMonth || 0) - 1) % cycleMonths === 0)) {
                                         totalOngoingCosts += (catSettings.ongoingCostMonthly || 0) * cycleMonths;
                                     }
                                 }
@@ -6541,30 +6570,33 @@
                     // Row 13: First data row
                     row = 13;
                 }
+                // Only include costs for categories that have filtered use cases (consistent with generateCashFlows)
+                const exportActiveCategories = [...new Set(filteredUseCases.map(uc => uc.category))];
+
                 filteredMonths.forEach((month, index) => {
                     const currentRow = row + index; // Current row number
                     let monthlyBenefit = 0;
                     filteredUseCases.forEach(uc => {
                         monthlyBenefit += calculateSavings(uc, month.id);
                     });
-                    
+
                     // Calculate actual implementation and ongoing costs for this month
                     let implCost = 0;
                     let ongoingCost = 0;
-                    
+
                     if (settings.useCategoryBilling) {
-                        // Calculate category-specific costs for this month
-                        categories.forEach(category => {
+                        // Calculate category-specific costs for this month (only active categories)
+                        exportActiveCategories.forEach(category => {
                             const catSettings = settings.categoryBilling?.[category];
                             if (catSettings) {
                                 // Implementation cost at the specified month
-                                if (index === catSettings.implementationMonth) {
+                                if (index === (catSettings.implementationMonth || 0)) {
                                     implCost += catSettings.implementationCost || 0;
                                 }
                                 // Ongoing costs based on billing cycle
                                 const cycleMonths = getBillingCycleMonths(catSettings.billingCycle, catSettings.customMonths);
-                                if (index > catSettings.implementationMonth && 
-                                    ((index - catSettings.implementationMonth - 1) % cycleMonths === 0)) {
+                                if (index > (catSettings.implementationMonth || 0) &&
+                                    ((index - (catSettings.implementationMonth || 0) - 1) % cycleMonths === 0)) {
                                     ongoingCost += (catSettings.ongoingCostMonthly || 0) * cycleMonths;
                                 }
                             }
@@ -6641,15 +6673,16 @@
                     metricsTotalBenefits += monthlyBenefit;
                     
                     if (settings.useCategoryBilling) {
-                        categories.forEach(category => {
+                        // Only count costs for active categories (consistent with cash flow and ROI calculations)
+                        exportActiveCategories.forEach(category => {
                             const catSettings = settings.categoryBilling?.[category];
                             if (catSettings) {
-                                if (index === catSettings.implementationMonth) {
+                                if (index === (catSettings.implementationMonth || 0)) {
                                     metricsTotalImplementation += catSettings.implementationCost || 0;
                                 }
                                 const cycleMonths = getBillingCycleMonths(catSettings.billingCycle, catSettings.customMonths);
-                                if (index > catSettings.implementationMonth && 
-                                    ((index - catSettings.implementationMonth - 1) % cycleMonths === 0)) {
+                                if (index > (catSettings.implementationMonth || 0) &&
+                                    ((index - (catSettings.implementationMonth || 0) - 1) % cycleMonths === 0)) {
                                     metricsTotalOngoing += (catSettings.ongoingCostMonthly || 0) * cycleMonths;
                                 }
                             }
@@ -6667,7 +6700,7 @@
                         }
                     }
                 });
-                
+
                 const metricsTotalCosts = metricsTotalImplementation + metricsTotalOngoing;
                 const roiDecimal = metricsTotalCosts > 0 ? ((metricsTotalBenefits - metricsTotalCosts) / metricsTotalCosts) : 0;
                 
@@ -6728,15 +6761,15 @@
                     let ongoingCost = 0;
                     
                     if (settings.useCategoryBilling) {
-                        categories.forEach(category => {
+                        exportActiveCategories.forEach(category => {
                             const catSettings = settings.categoryBilling?.[category];
                             if (catSettings) {
-                                if (index === catSettings.implementationMonth) {
+                                if (index === (catSettings.implementationMonth || 0)) {
                                     implCost += catSettings.implementationCost || 0;
                                 }
                                 const cycleMonths = getBillingCycleMonths(catSettings.billingCycle, catSettings.customMonths);
-                                if (index > catSettings.implementationMonth && 
-                                    ((index - catSettings.implementationMonth - 1) % cycleMonths === 0)) {
+                                if (index > (catSettings.implementationMonth || 0) &&
+                                    ((index - (catSettings.implementationMonth || 0) - 1) % cycleMonths === 0)) {
                                     ongoingCost += (catSettings.ongoingCostMonthly || 0) * cycleMonths;
                                 }
                             }
@@ -6753,13 +6786,13 @@
                             ongoingCost = settings.ongoingCostMonthly * cycleMonths;
                         }
                     }
-                    
+
                     const netCashFlow = monthlyBenefit - implCost - ongoingCost;
                     cumulative += netCashFlow;
-                    
+
                     csv += `${month.month} ${month.year}${TAB}${netCashFlow.toFixed(2)}${TAB}${cumulative.toFixed(2)}${TAB}0\n`;
                 });
-                
+
                 // Break-even point
                 const breakEvenMonth = filteredMonths.findIndex((month, index) => {
                     let cum = 0;
@@ -6768,20 +6801,20 @@
                         filteredUseCases.forEach(uc => {
                             monthlyBenefit += calculateSavings(uc, filteredMonths[i].id);
                         });
-                        
+
                         let implCost = 0;
                         let ongoingCost = 0;
-                        
+
                         if (settings.useCategoryBilling) {
-                            categories.forEach(category => {
+                            exportActiveCategories.forEach(category => {
                                 const catSettings = settings.categoryBilling?.[category];
                                 if (catSettings) {
-                                    if (i === catSettings.implementationMonth) {
+                                    if (i === (catSettings.implementationMonth || 0)) {
                                         implCost += catSettings.implementationCost || 0;
                                     }
                                     const cycleMonths = getBillingCycleMonths(catSettings.billingCycle, catSettings.customMonths);
-                                    if (i > catSettings.implementationMonth && 
-                                        ((i - catSettings.implementationMonth - 1) % cycleMonths === 0)) {
+                                    if (i > (catSettings.implementationMonth || 0) &&
+                                        ((i - (catSettings.implementationMonth || 0) - 1) % cycleMonths === 0)) {
                                         ongoingCost += (catSettings.ongoingCostMonthly || 0) * cycleMonths;
                                     }
                                 }
@@ -6798,7 +6831,7 @@
                                 ongoingCost = settings.ongoingCostMonthly * cycleMonths;
                             }
                         }
-                        
+
                         cum += monthlyBenefit - implCost - ongoingCost;
                     }
                     return cum >= 0;
@@ -6820,15 +6853,15 @@
                     let ongoingCost = 0;
                     
                     if (settings.useCategoryBilling) {
-                        categories.forEach(category => {
+                        exportActiveCategories.forEach(category => {
                             const catSettings = settings.categoryBilling?.[category];
                             if (catSettings) {
-                                if (index === catSettings.implementationMonth) {
+                                if (index === (catSettings.implementationMonth || 0)) {
                                     implCost += catSettings.implementationCost || 0;
                                 }
                                 const cycleMonths = getBillingCycleMonths(catSettings.billingCycle, catSettings.customMonths);
-                                if (index > catSettings.implementationMonth && 
-                                    ((index - catSettings.implementationMonth - 1) % cycleMonths === 0)) {
+                                if (index > (catSettings.implementationMonth || 0) &&
+                                    ((index - (catSettings.implementationMonth || 0) - 1) % cycleMonths === 0)) {
                                     ongoingCost += (catSettings.ongoingCostMonthly || 0) * cycleMonths;
                                 }
                             }
@@ -6845,7 +6878,7 @@
                             ongoingCost = settings.ongoingCostMonthly * cycleMonths;
                         }
                     }
-                    
+
                     csv += `${month.month} ${month.year}${TAB}${monthlyBenefit.toFixed(2)}${TAB}${implCost}${TAB}${ongoingCost}\n`;
                 });
                 csv += '\n';
@@ -7176,13 +7209,8 @@
                             const improvement = parseFloat(monthData[improvementFieldKey]) || 0;
                             const baseline = benefit.baselineValue || 0;
                             const metricConfig = METRIC_CONFIG[benefit.metric];
-                            // Calculate net improvement based on metric type
-                            let netImprovement;
-                            if (metricConfig && metricConfig.inverseMetric) {
-                                netImprovement = Math.max(0, baseline - improvement);
-                            } else {
-                                netImprovement = Math.max(0, improvement - baseline);
-                            }
+                            // Use centralized direction logic for consistency
+                            const netImprovement = calculateNetImprovement(benefit.metric, baseline, improvement);
                             const effectiveCost = getEffectiveCost(uc, uc.channel);
 
                             // Simulate Excel calculation based on benefit type
@@ -12021,15 +12049,17 @@
                                                             totalBenefits += monthlyBenefit;
                                                         
                                                             if (financialSettings.useCategoryBilling) {
-                                                                categories.forEach(category => {
+                                                                // Only count costs for active categories (consistent with generateCashFlows)
+                                                                const uiActiveCategories = [...new Set(filteredUseCases.map(uc => uc.category))];
+                                                                uiActiveCategories.forEach(category => {
                                                                     const catSettings = financialSettings.categoryBilling?.[category];
                                                                     if (catSettings) {
-                                                                        if (index === catSettings.implementationMonth) {
+                                                                        if (index === (catSettings.implementationMonth || 0)) {
                                                                             totalImplementation += catSettings.implementationCost || 0;
                                                                         }
                                                                         const cycleMonths = getBillingCycleMonths(catSettings.billingCycle, catSettings.customMonths);
-                                                                        if (index > catSettings.implementationMonth && 
-                                                                            ((index - catSettings.implementationMonth - 1) % cycleMonths === 0)) {
+                                                                        if (index > (catSettings.implementationMonth || 0) &&
+                                                                            ((index - (catSettings.implementationMonth || 0) - 1) % cycleMonths === 0)) {
                                                                             totalOngoing += (catSettings.ongoingCostMonthly || 0) * cycleMonths;
                                                                         }
                                                                     }
